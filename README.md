@@ -49,6 +49,21 @@ Gate::define(Permisos::RESOLVER, fn ($u) => $u->puede('arcop.resolver'));
 Son tres y no uno para que el municipio que quiera **separar la recepción de la
 resolución** pueda hacerlo: es una garantía para el vecino.
 
+### Un enlace del sistema en la recepción
+
+El módulo puede negarse a tramitar por algo que solo el sistema adoptante sabe
+resolver. El caso real: falta la fecha de nacimiento del titular, y sin ella no
+se puede saber si es menor de edad —los derechos de un menor los ejerce su
+representante legal—. Sin un enlace, el funcionario lee la negativa y no tiene
+adónde ir, que es la peor forma de tener razón.
+
+```php
+'ayuda_del_adoptante' => [
+    'texto' => 'Acreditar la fecha de nacimiento de esta persona',
+    'ruta' => 'privacidad.edad.formulario',   // recibe la clave del titular
+],
+```
+
 ## Lo que este paquete NO hace
 
 **Decidir qué cesa.** Tener la pantalla para recibir y resolver solicitudes es la

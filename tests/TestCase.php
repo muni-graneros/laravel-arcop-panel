@@ -56,6 +56,10 @@ abstract class TestCase extends Base
     protected function defineRoutes($router): void
     {
         $router->get('/ingresar', fn (): string => 'ingreso del sistema')->name('login');
+
+        // Una ruta del sistema adoptante, para ejercitar el enlace de ayuda que
+        // el panel ofrece en la recepción.
+        $router->get('/ayuda-del-sistema/{titular}', fn (): string => 'ayuda')->name('ayuda.de.prueba');
     }
 
     protected function defineDatabaseMigrations(): void

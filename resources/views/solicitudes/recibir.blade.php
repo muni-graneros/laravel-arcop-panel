@@ -9,6 +9,17 @@
     <p class="arcop-guia">Titular: <strong>{{ $etiquetaTitular }}</strong>
         (<a href="{{ route('arcop.solicitudes.buscar') }}">buscar a otra persona</a>)</p>
 
+    @if (config('arcop-panel.ayuda_del_adoptante.ruta') && config('arcop-panel.ayuda_del_adoptante.texto'))
+        {{-- El sistema puede negarse a tramitar por algo que solo él resuelve.
+             Este enlace es para que el funcionario tenga adónde ir cuando eso
+             pasa, en vez de quedarse con la negativa en la mano. --}}
+        <p class="arcop-guia">
+            <a href="{{ route(config('arcop-panel.ayuda_del_adoptante.ruta'), $titular->getKey()) }}">
+                {{ config('arcop-panel.ayuda_del_adoptante.texto') }}
+            </a>
+        </p>
+    @endif
+
     <form method="POST" action="{{ route('arcop.solicitudes.store') }}" class="arcop-formulario">
         @csrf
         <input type="hidden" name="titular_id" value="{{ $titular->getKey() }}">

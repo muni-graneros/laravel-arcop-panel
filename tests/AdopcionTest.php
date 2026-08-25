@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Facades\File;
+
 use Muni\Arcop\AdoptanteIncompleto;
 use Muni\Shared\Privacidad\Contratos\BuscaTitulares;
 use Muni\Shared\Privacidad\Contratos\VerificadorIdentidad;
@@ -27,9 +29,16 @@ it('el paquete publica config, vistas y CSS por separado', function () {
     $this->artisan('vendor:publish', ['--tag' => 'arcop-panel-css'])->assertSuccessful();
 
     expect(file_exists(config_path('arcop-panel.php')))->toBeTrue()
-        ->and(file_exists(public_path('vendor/arcop-panel/arcop-panel.css')))->toBeTrue();
+        ->and(file_exists(public_path('vendor/arcop-panel/arcop-panel.css')))->toBeTrue()
+        ->and(is_dir(resource_path('views/vendor/arcop-panel')))->toBeTrue();
 
+    // Limpieza obligatoria: lo publicado queda en la app de Testbench y las
+    // vistas publicadas GANAN sobre las del paquete. Sin esto, este test le
+    // congela las vistas a todos los demás —costó una hora entender por qué un
+    // cambio en un blade «no se aplicaba»—.
     @unlink(config_path('arcop-panel.php'));
+    File::deleteDirectory(resource_path('views/vendor/arcop-panel'));
+    File::deleteDirectory(public_path('vendor/arcop-panel'));
 });
 
 it('el panel no depende de Filament, Livewire ni de ningún paquete de npm', function () {

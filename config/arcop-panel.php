@@ -64,6 +64,22 @@ return [
         'ayuda' => null,
     ],
 
+    /*
+     * Un enlace del propio sistema en la pantalla de recepción.
+     *
+     * Existe porque el módulo puede negarse a tramitar por algo que solo el
+     * sistema adoptante sabe resolver —el caso real: falta la fecha de
+     * nacimiento del titular, y sin ella no se puede saber si es menor de
+     * edad—. Sin este enlace el funcionario lee la negativa y no tiene adónde
+     * ir, que es la peor forma de tener razón.
+     *
+     * La ruta recibe la clave del titular como único parámetro.
+     */
+    'ayuda_del_adoptante' => [
+        'texto' => null,
+        'ruta' => null,
+    ],
+
     'permisos' => [
         'ver' => Permisos::VER,
         'recibir' => Permisos::RECIBIR,

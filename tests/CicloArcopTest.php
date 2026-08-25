@@ -215,3 +215,25 @@ it('descarga el expediente y deja registrada la descarga', function () {
 
     expect(EntradaBitacora::where('evento', 'arcop.expediente.descargado')->count())->toBe(1);
 });
+
+it('ofrece el enlace del sistema cuando el adoptante lo declara', function () {
+    config([
+        'arcop-panel.ayuda_del_adoptante.texto' => 'Acreditar la fecha de nacimiento',
+        'arcop-panel.ayuda_del_adoptante.ruta' => 'ayuda.de.prueba',
+    ]);
+
+    $this->actingAs($this->funcionario);
+
+    $this->get('/privacidad/solicitudes/recibir/'.$this->vecino->getKey())
+        ->assertOk()
+        ->assertSee('Acreditar la fecha de nacimiento')
+        ->assertSee('/ayuda-del-sistema/'.$this->vecino->getKey());
+});
+
+it('sin declararlo, la pantalla de recepción no inventa ningún enlace', function () {
+    $this->actingAs($this->funcionario);
+
+    $this->get('/privacidad/solicitudes/recibir/'.$this->vecino->getKey())
+        ->assertOk()
+        ->assertDontSee('Acreditar la fecha de nacimiento');
+});
