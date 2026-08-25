@@ -212,6 +212,27 @@ a {
     margin-bottom: 0;
 }
 
+/* Un control y su botón en la misma línea, sin que la línea de ayuda de abajo
+   empuje a uno de los dos. */
+.arcop-campo__fila {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.arcop-campo__fila input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.arcop-busqueda {
+    align-items: flex-start;
+}
+
+.arcop-busqueda .arcop-campo {
+    flex: 1 1 24rem;
+}
+
 .arcop-campo label,
 .arcop-campo legend {
     font-weight: 600;

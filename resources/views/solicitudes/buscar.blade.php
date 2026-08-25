@@ -12,11 +12,16 @@
     <form class="arcop-busqueda" method="GET" action="{{ route('arcop.solicitudes.buscar') }}">
         <div class="arcop-campo">
             <label for="q">Nombre o documento</label>
-            <input id="q" name="q" type="search" value="{{ $termino }}" autofocus
-                   aria-describedby="q-ayuda" minlength="{{ $minimo }}">
+            {{-- El botón va DENTRO del campo, pegado al input: si queda fuera,
+                 se alinea con el fondo del bloque —que incluye la línea de
+                 ayuda— y aparece un escalón respecto del cuadro de texto. --}}
+            <div class="arcop-campo__fila">
+                <input id="q" name="q" type="search" value="{{ $termino }}" autofocus
+                       aria-describedby="q-ayuda" minlength="{{ $minimo }}">
+                <button class="arcop-boton arcop-boton--principal" type="submit">Buscar</button>
+            </div>
             <p id="q-ayuda" class="arcop-ayuda">Escribí al menos {{ $minimo }} caracteres.</p>
         </div>
-        <button class="arcop-boton arcop-boton--principal" type="submit">Buscar</button>
     </form>
 
     @if ($termino !== '' && ! $buscoDeVerdad)
