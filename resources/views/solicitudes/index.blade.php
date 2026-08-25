@@ -6,7 +6,10 @@
     @include('arcop-panel::partes.avisos')
 
     <div class="arcop-titulo-fila">
-        <h1>Solicitudes de datos personales</h1>
+        {{-- El mismo nombre que el adoptante puso en su menú: si el enlace dice
+             una cosa y el encabezado otra, el funcionario duda de si llegó al
+             lugar correcto. --}}
+        <h1>{{ config('arcop-panel.titulo') }}</h1>
         @can(\Muni\Arcop\Permisos::RECIBIR)
             <a class="arcop-boton arcop-boton--principal" href="{{ route('arcop.solicitudes.buscar') }}">
                 Recibir una solicitud

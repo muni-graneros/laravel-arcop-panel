@@ -118,6 +118,35 @@
     justify-content: space-between;
 }
 
+/* Tipografía propia y no la del navegador.
+ *
+ * El panel puede quedar dentro del cascarón de un sistema que aplica un reset
+ * —Tailwind, sin ir más lejos, iguala h1..h6 al texto corriente—, y ahí los
+ * títulos desaparecen: se midió una pantalla donde el h1 se veía igual que un
+ * enlace. Declararlos acá es lo que mantiene la jerarquía en cualquier sistema
+ * adoptante. */
+.arcop-contenido h1 {
+    margin: 0 0 0.5rem;
+    font-size: 1.6rem;
+    line-height: 1.25;
+    font-weight: 700;
+}
+
+.arcop-contenido h2 {
+    margin: 2rem 0 0.75rem;
+    font-size: 1.2rem;
+    line-height: 1.3;
+    font-weight: 600;
+}
+
+.arcop-contenido h2:first-of-type {
+    margin-top: 1.5rem;
+}
+
+.arcop-titulo-fila h1 {
+    margin: 0;
+}
+
 .arcop-guia,
 .arcop-ayuda {
     color: var(--arcop-texto-suave);
