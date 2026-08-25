@@ -33,6 +33,17 @@
     @endif
 
     <h2>Acciones</h2>
+
+    @if ($solicitud->estado->estaResuelta())
+        {{-- Un caso cerrado no ofrece acciones, y decirlo es mejor que dejar el
+             hueco: sin esta línea la sección quedaba vacía y parecía rota. --}}
+        <p class="arcop-guia">
+            Este caso está cerrado como <strong>{{ $solicitud->estado->etiqueta() }}</strong>@if ($solicitud->resuelta_en)
+                el {{ $solicitud->resuelta_en->format('d-m-Y') }}@endif. Una solicitud resuelta no se retoca: lo
+            que ocurrió queda como está, y la bitácora de más abajo lo prueba.
+        </p>
+    @endif
+
     <div class="arcop-acciones">
         {{-- El botón se muestra solo si la copia PROCEDE: el tipo tiene que dar
              derecho, la solicitud no puede estar rechazada y el titular tiene
@@ -46,7 +57,9 @@
                 <a class="arcop-boton" href="{{ route('arcop.solicitudes.expediente', $solicitud) }}">
                     Descargar el expediente
                 </a>
-            @else
+            @elseif (! $solicitud->estado->estaResuelta())
+                {{-- Solo mientras el caso sigue abierto: en uno cerrado el
+                     motivo ya se explicó arriba y repetirlo es ruido. --}}
                 <p class="arcop-guia">{{ \Muni\Shared\Privacidad\Ciclo\EntregaDeCopia::porQueNo($solicitud) }}</p>
             @endif
         @endcan

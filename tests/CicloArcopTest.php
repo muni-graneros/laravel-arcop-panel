@@ -265,3 +265,21 @@ it('sin declararlo, la pantalla de recepción no inventa ningún enlace', functi
         ->assertOk()
         ->assertDontSee('Acreditar la fecha de nacimiento');
 });
+
+it('un caso cerrado lo dice, en vez de dejar la sección de acciones vacía', function () {
+    $this->actingAs($this->funcionario);
+    recibirSolicitud();
+    $solicitud = Solicitud::sole();
+
+    $this->post("/privacidad/solicitudes/{$solicitud->getKey()}/resolver", [
+        'resultado' => EstadoDeSolicitud::Rechazada->value,
+        'fundamento' => 'No acreditó ser el titular de los datos.',
+    ])->assertRedirect();
+
+    $this->get("/privacidad/solicitudes/{$solicitud->getKey()}")
+        ->assertOk()
+        ->assertSee('Este caso está cerrado como')
+        ->assertDontSee('Tomar el caso')
+        // Y el motivo de la copia no se repite: ya se explicó que está cerrado.
+        ->assertDontSee('solo el acceso y la portabilidad');
+});
