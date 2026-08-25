@@ -125,6 +125,7 @@
  * títulos desaparecen: se midió una pantalla donde el h1 se veía igual que un
  * enlace. Declararlos acá es lo que mantiene la jerarquía en cualquier sistema
  * adoptante. */
+.arcop-cuerpo h1,
 .arcop-contenido h1 {
     margin: 0 0 0.5rem;
     font-size: 1.6rem;
@@ -132,6 +133,7 @@
     font-weight: 700;
 }
 
+.arcop-cuerpo h2,
 .arcop-contenido h2 {
     margin: 2rem 0 0.75rem;
     font-size: 1.2rem;
@@ -139,6 +141,7 @@
     font-weight: 600;
 }
 
+.arcop-cuerpo h2:first-of-type,
 .arcop-contenido h2:first-of-type {
     margin-top: 1.5rem;
 }
