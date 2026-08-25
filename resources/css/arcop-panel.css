@@ -203,6 +203,15 @@ a {
     padding: 0;
 }
 
+/* En la barra de filtros y en la de búsqueda los campos van en fila, alineados
+   por abajo con el botón. Ese margen inferior —que sí hace falta entre campos
+   apilados de un formulario— acá empujaba los campos hacia arriba y dejaba el
+   botón un centímetro más abajo que los selectores. */
+.arcop-filtros .arcop-campo,
+.arcop-busqueda .arcop-campo {
+    margin-bottom: 0;
+}
+
 .arcop-campo label,
 .arcop-campo legend {
     font-weight: 600;

@@ -2,6 +2,7 @@
 
 namespace Muni\Arcop\Http\Controllers;
 
+use Muni\Shared\Privacidad\Ciclo\EntregaDeCopia;
 use Muni\Shared\Privacidad\Contratos\RegistroDeEvidencia;
 use Muni\Shared\Privacidad\ExportacionDeDatos;
 use Muni\Shared\Privacidad\Modelos\Solicitud;
@@ -23,6 +24,14 @@ class ExpedienteController extends Controller
     public function descargar(Solicitud $solicitud, RegistroDeEvidencia $evidencia): StreamedResponse
     {
         $solicitud->loadMissing('titular');
+
+        // Segunda guardia, a propósito. La vista ya oculta el botón cuando la
+        // copia no procede, pero una URL se escribe a mano: sin esto, pedir el
+        // expediente de una supresión devolvía un 500 con la traza a la vista en
+        // vez de una negativa. El motivo es el del módulo, tal cual.
+        $motivo = EntregaDeCopia::porQueNo($solicitud);
+
+        abort_if($motivo !== null, 403, $motivo);
 
         $contenido = json_encode(
             app(ExportacionDeDatos::class)->paraSolicitud($solicitud),

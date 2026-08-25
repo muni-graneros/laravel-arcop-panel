@@ -39,7 +39,10 @@ Route::name('arcop.')->group(function (): void {
         ->name('solicitudes.show');
 
     Route::get('solicitudes/{solicitud}/expediente', [ExpedienteController::class, 'descargar'])
-        ->middleware('can:'.Permisos::VER)
+        // Resolver y no ver: llevarse la copia completa de los datos de una
+        // persona es la acción más sensible del panel, y quien solo mira la
+        // bandeja no tiene por qué poder hacerlo.
+        ->middleware('can:'.Permisos::RESOLVER)
         ->name('solicitudes.expediente');
 
     Route::post('solicitudes/{solicitud}/tomar', [AccionesController::class, 'tomar'])

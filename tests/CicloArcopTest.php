@@ -199,6 +199,34 @@ it('la página de supresión muestra hasta dónde llega el derecho antes del bot
         ->and(VecinoDePrueba::find($this->vecino->getKey()))->not->toBeNull();
 });
 
+it('no ofrece la copia en una solicitud que no da derecho a ella', function () {
+    $this->actingAs($this->funcionario);
+    recibirSolicitud(['tipo' => TipoDeSolicitud::Supresion->value, 'detalle' => 'Pide que borren sus datos.']);
+    $solicitud = Solicitud::sole();
+
+    // Ni el botón en pantalla...
+    $this->get("/privacidad/solicitudes/{$solicitud->getKey()}")
+        ->assertOk()
+        ->assertDontSee('Descargar el expediente')
+        ->assertSee('solo el acceso y la portabilidad');
+
+    // ...ni la URL escrita a mano, que antes devolvía un 500 con la traza.
+    $this->get("/privacidad/solicitudes/{$solicitud->getKey()}/expediente")->assertForbidden();
+});
+
+it('no entrega la copia que una resolución acaba de negar', function () {
+    $this->actingAs($this->funcionario);
+    recibirSolicitud();
+    $solicitud = Solicitud::sole();
+
+    $this->post("/privacidad/solicitudes/{$solicitud->getKey()}/resolver", [
+        'resultado' => EstadoDeSolicitud::Rechazada->value,
+        'fundamento' => 'No acreditó ser el titular de los datos.',
+    ])->assertRedirect();
+
+    $this->get("/privacidad/solicitudes/{$solicitud->getKey()}/expediente")->assertForbidden();
+});
+
 it('descarga el expediente y deja registrada la descarga', function () {
     $this->actingAs($this->funcionario);
     recibirSolicitud();

@@ -34,10 +34,21 @@
 
     <h2>Acciones</h2>
     <div class="arcop-acciones">
-        @can(\Muni\Arcop\Permisos::VER)
-            <a class="arcop-boton" href="{{ route('arcop.solicitudes.expediente', $solicitud) }}">
-                Descargar el expediente
-            </a>
+        {{-- El botón se muestra solo si la copia PROCEDE: el tipo tiene que dar
+             derecho, la solicitud no puede estar rechazada y el titular tiene
+             que estar vigente. Ofrecerlo igual y que el módulo se niegue cuando
+             ya lo apretaron es hacer quedar mal al funcionario delante del
+             vecino. Y va con el permiso de resolver, no con el de ver: llevarse
+             el expediente completo de una persona es la acción más sensible del
+             panel. --}}
+        @can(\Muni\Arcop\Permisos::RESOLVER)
+            @if (\Muni\Shared\Privacidad\Ciclo\EntregaDeCopia::procede($solicitud))
+                <a class="arcop-boton" href="{{ route('arcop.solicitudes.expediente', $solicitud) }}">
+                    Descargar el expediente
+                </a>
+            @else
+                <p class="arcop-guia">{{ \Muni\Shared\Privacidad\Ciclo\EntregaDeCopia::porQueNo($solicitud) }}</p>
+            @endif
         @endcan
 
         @can(\Muni\Arcop\Permisos::RESOLVER)
