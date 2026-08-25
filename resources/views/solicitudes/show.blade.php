@@ -44,6 +44,11 @@
         </p>
     @endif
 
+    {{-- El contenedor solo existe si hay algo que poner: un div vacío deja un
+         hueco con separación y, en una automatización, se resuelve como oculto
+         —costó una grabación entera descubrir que el «botón que no aparecía» era
+         en realidad esta caja vacía—. --}}
+    @if (! $solicitud->estado->estaResuelta() || auth()->user()?->can(\Muni\Arcop\Permisos::RESOLVER))
     <div class="arcop-acciones">
         {{-- El botón se muestra solo si la copia PROCEDE: el tipo tiene que dar
              derecho, la solicitud no puede estar rechazada y el titular tiene
@@ -86,6 +91,7 @@
             @endif
         @endcan
     </div>
+    @endif
 
     <h2>Bitácora del caso</h2>
     @if ($bitacora->isEmpty())
