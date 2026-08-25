@@ -1,0 +1,57 @@
+{
+    "name": "muni-graneros/laravel-arcop-panel",
+    "description": "El ciclo ARCOP de la Ley 21.719 (recepción y resolución de solicitudes) como panel Blade, para cualquier Laravel: sin Filament, sin Livewire, sin Tailwind y sin JS.",
+    "type": "library",
+    "license": "proprietary",
+    "keywords": ["laravel", "privacidad", "ley-21719", "arcop", "municipal"],
+    "require": {
+        "php": "^8.3",
+        "illuminate/http": "^12.0|^13.0",
+        "illuminate/routing": "^12.0|^13.0",
+        "illuminate/support": "^12.0|^13.0",
+        "illuminate/view": "^12.0|^13.0",
+        "muni-graneros/laravel-muni-shared": "^1.14"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.18",
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "pestphp/pest": "^3.0|^4.0",
+        "phpstan/phpstan": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Muni\\Arcop\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Muni\\Arcop\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "stan": "phpstan analyse --memory-limit=1G"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Muni\\Arcop\\ArcopPanelServiceProvider"
+            ]
+        }
+    },
+    "repositories": {
+        "muni-shared": {
+            "type": "vcs",
+            "url": "https://github.com/muni-graneros/laravel-muni-shared.git",
+            "no-api": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}

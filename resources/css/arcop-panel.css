@@ -1,0 +1,345 @@
+/*
+ * El panel ARCOP, con sus propios valores.
+ *
+ * Está escrito sobre los tokens `--muni-*` del ecosistema municipal: si el
+ * sistema adoptante ya carga `laravel-muni-ui`, este panel hereda su identidad
+ * sin tocar nada. Si no lo carga, los `var(..., <valor>)` de acá lo dejan legible
+ * igual. Por eso NO hay un solo color literal fuera de este bloque.
+ *
+ * Contraste verificado sobre 4.5:1 en texto y 3:1 en controles, en los dos
+ * modos: es un sistema del Estado (Decreto N°1/2015) y el panel donde se
+ * resuelven derechos no puede ser el que no se lee.
+ */
+.arcop-cuerpo {
+    --arcop-fondo: var(--muni-bg, #f8f5ec);
+    --arcop-superficie: var(--muni-surface, #ffffff);
+    --arcop-borde: var(--muni-border, #cfc9ba);
+    --arcop-texto: var(--muni-text, #1b1b1b);
+    --arcop-texto-suave: var(--muni-text-muted, #4a4a4a);
+    --arcop-acento: var(--muni-accent, #355a63);
+    --arcop-acento-texto: var(--muni-accent-contrast, #ffffff);
+    --arcop-bien: var(--muni-success, #1f5b32);
+    --arcop-aviso: var(--muni-warning, #7a4b00);
+    --arcop-grave: var(--muni-danger, #8a1c1c);
+    --arcop-info: var(--muni-info, #274b8a);
+
+    margin: 0;
+    background: var(--arcop-fondo);
+    color: var(--arcop-texto);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.5;
+}
+
+@media (prefers-color-scheme: dark) {
+    .arcop-cuerpo {
+        --arcop-fondo: var(--muni-bg, #081418);
+        --arcop-superficie: var(--muni-surface, #0f2025);
+        --arcop-borde: var(--muni-border, #2b4149);
+        --arcop-texto: var(--muni-text, #eef4f5);
+        --arcop-texto-suave: var(--muni-text-muted, #b9c8cc);
+        --arcop-acento: var(--muni-accent, #7fb2bd);
+        --arcop-acento-texto: var(--muni-accent-contrast, #06171c);
+        --arcop-bien: var(--muni-success, #8fd3a4);
+        --arcop-aviso: var(--muni-warning, #f0c069);
+        --arcop-grave: var(--muni-danger, #ff9d9d);
+        --arcop-info: var(--muni-info, #9fc0f5);
+    }
+}
+
+/* Los dos activadores explícitos del ecosistema ganan sobre el sistema operativo. */
+.dark .arcop-cuerpo,
+[data-muni-theme="dark"] .arcop-cuerpo {
+    --arcop-fondo: var(--muni-bg, #081418);
+    --arcop-superficie: var(--muni-surface, #0f2025);
+    --arcop-borde: var(--muni-border, #2b4149);
+    --arcop-texto: var(--muni-text, #eef4f5);
+    --arcop-texto-suave: var(--muni-text-muted, #b9c8cc);
+    --arcop-acento: var(--muni-accent, #7fb2bd);
+    --arcop-acento-texto: var(--muni-accent-contrast, #06171c);
+    --arcop-bien: var(--muni-success, #8fd3a4);
+    --arcop-aviso: var(--muni-warning, #f0c069);
+    --arcop-grave: var(--muni-danger, #ff9d9d);
+    --arcop-info: var(--muni-info, #9fc0f5);
+}
+
+.arcop-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.arcop-saltar {
+    position: absolute;
+    left: -9999px;
+}
+
+.arcop-saltar:focus {
+    left: 1rem;
+    top: 1rem;
+    z-index: 10;
+    padding: 0.5rem 0.75rem;
+    background: var(--arcop-superficie);
+}
+
+.arcop-cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem clamp(1rem, 4vw, 2rem);
+    background: var(--arcop-superficie);
+    border-bottom: 1px solid var(--arcop-borde);
+}
+
+.arcop-cabecera__sistema {
+    margin: 0;
+    font-weight: 600;
+}
+
+.arcop-contenido {
+    max-width: 70rem;
+    margin: 0 auto;
+    padding: clamp(1rem, 4vw, 2rem);
+}
+
+.arcop-titulo-fila {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.arcop-guia,
+.arcop-ayuda {
+    color: var(--arcop-texto-suave);
+}
+
+.arcop-ayuda {
+    margin: 0.25rem 0 0;
+    font-size: 0.9rem;
+}
+
+a {
+    color: var(--arcop-acento);
+}
+
+/* El foco se ve siempre y no queda tapado por la cabecera. */
+:where(a, button, input, select, textarea):focus-visible {
+    outline: 3px solid var(--arcop-acento);
+    outline-offset: 2px;
+    scroll-margin-top: 5rem;
+}
+
+.arcop-boton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* Área táctil mínima de 24x24 (WCAG 2.2 «Target Size»). */
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--arcop-borde);
+    border-radius: 0.375rem;
+    background: var(--arcop-superficie);
+    color: var(--arcop-texto);
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.arcop-boton--principal {
+    background: var(--arcop-acento);
+    border-color: var(--arcop-acento);
+    color: var(--arcop-acento-texto);
+}
+
+.arcop-boton--grave {
+    border-color: var(--arcop-grave);
+    color: var(--arcop-grave);
+}
+
+.arcop-filtros,
+.arcop-busqueda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-end;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: var(--arcop-superficie);
+    border: 1px solid var(--arcop-borde);
+    border-radius: 0.5rem;
+}
+
+.arcop-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 12rem;
+    border: 0;
+    margin: 0 0 1rem;
+    padding: 0;
+}
+
+.arcop-campo label,
+.arcop-campo legend {
+    font-weight: 600;
+}
+
+.arcop-campo input,
+.arcop-campo select,
+.arcop-campo textarea {
+    min-height: 2.75rem;
+    padding: 0.5rem;
+    border: 1px solid var(--arcop-borde);
+    border-radius: 0.375rem;
+    background: var(--arcop-superficie);
+    color: var(--arcop-texto);
+    font: inherit;
+}
+
+.arcop-opcion {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    min-height: 2.75rem;
+    font-weight: 400;
+}
+
+.arcop-formulario {
+    max-width: 42rem;
+    margin-top: 1.5rem;
+}
+
+/* Una tabla ancha se desplaza dentro de su marco: el cuerpo nunca. */
+.arcop-tabla-marco {
+    overflow-x: auto;
+    border: 1px solid var(--arcop-borde);
+    border-radius: 0.5rem;
+    background: var(--arcop-superficie);
+}
+
+.arcop-tabla {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.arcop-tabla th,
+.arcop-tabla td {
+    padding: 0.625rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--arcop-borde);
+}
+
+.arcop-marca {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.arcop-marca--bien { color: var(--arcop-bien); }
+.arcop-marca--aviso { color: var(--arcop-aviso); }
+.arcop-marca--grave { color: var(--arcop-grave); }
+.arcop-marca--info { color: var(--arcop-info); }
+.arcop-marca--neutra { color: var(--arcop-texto-suave); }
+
+.arcop-aviso {
+    margin: 1rem 0;
+    padding: 0.75rem 1rem;
+    border-left: 4px solid var(--arcop-acento);
+    background: var(--arcop-superficie);
+}
+
+.arcop-aviso--error { border-left-color: var(--arcop-grave); }
+.arcop-aviso--atencion { border-left-color: var(--arcop-aviso); }
+
+.arcop-ficha {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: var(--arcop-superficie);
+    border: 1px solid var(--arcop-borde);
+    border-radius: 0.5rem;
+}
+
+.arcop-ficha dt {
+    font-size: 0.875rem;
+    color: var(--arcop-texto-suave);
+}
+
+.arcop-ficha dd {
+    margin: 0;
+    font-weight: 600;
+}
+
+.arcop-detalle {
+    white-space: pre-line;
+}
+
+.arcop-previa {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border: 1px solid var(--arcop-aviso);
+    border-radius: 0.5rem;
+}
+
+.arcop-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.arcop-acciones form { margin: 0; }
+
+.arcop-resultados,
+.arcop-bitacora {
+    padding-left: 0;
+    list-style: none;
+}
+
+.arcop-resultados li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--arcop-borde);
+    border-radius: 0.5rem;
+    background: var(--arcop-superficie);
+    margin-bottom: 0.5rem;
+}
+
+.arcop-bitacora li {
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--arcop-borde);
+}
+
+.arcop-vacio {
+    padding: 2rem;
+    text-align: center;
+    color: var(--arcop-texto-suave);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
