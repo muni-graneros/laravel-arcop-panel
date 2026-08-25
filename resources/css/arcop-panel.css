@@ -70,6 +70,7 @@
     margin: -1px;
     overflow: hidden;
     clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
     white-space: nowrap;
     border: 0;
 }
@@ -129,6 +130,19 @@
 
 a {
     color: var(--arcop-acento);
+}
+
+/* 24x24 mínimo también para los enlaces sueltos —la navegación y el «Ver» de
+   cada fila—, no solo para los botones. Medido en 390px: quedaban en 22px de
+   alto, que es justo por debajo del mínimo. La excepción de WCAG para enlaces
+   en texto corrido no los cubre: están en una barra y en una celda. */
+.arcop-cabecera nav a,
+.arcop-tabla a,
+.arcop-bitacora a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
+    min-width: 1.5rem;
 }
 
 /* El foco se ve siempre y no queda tapado por la cabecera. */
@@ -221,6 +235,13 @@ a {
 
 /* Una tabla ancha se desplaza dentro de su marco: el cuerpo nunca. */
 .arcop-tabla-marco {
+    /* `relative` no es decorativo: los textos de solo-lectores van
+       `position: absolute`, y sin un contenedor de posicionamiento se ubican
+       respecto al documento —en la coordenada que les tocaría dentro de la
+       tabla ancha— y ESTIRAN el scroll horizontal de la página entera. Medido:
+       el documento llegaba a 551px en una pantalla de 390. `overflow` por sí
+       solo no los contiene; hace falta esto. */
+    position: relative;
     overflow-x: auto;
     border: 1px solid var(--arcop-borde);
     border-radius: 0.5rem;
