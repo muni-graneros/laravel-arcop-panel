@@ -1,3 +1,7 @@
 /vendor/
 composer.lock
 .phpunit.result.cache
+
+# direnv (tokens por frente; NUNCA versionar)
+.envrc
+.direnv/

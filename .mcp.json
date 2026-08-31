@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "github": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "-e",
+        "GITHUB_READ_ONLY=1",
+        "ghcr.io/github/github-mcp-server:v1.11.0"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GH_PAT_MUNI}"
+      }
+    }
+  }
+}

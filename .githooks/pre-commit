@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# ──────────────────────────────────────────────────────────────────────────────
+# pre-commit — secretos, formato y análisis estático de lo que se va a commitear.
+#
+# Se instala solo: `composer install` ejecuta `git config core.hooksPath .githooks`
+# (ver post-install-cmd en composer.json). Para instalarlo a mano:
+#     git config core.hooksPath .githooks
+#
+# Para saltárselo puntualmente:  git commit --no-verify
+# ──────────────────────────────────────────────────────────────────────────────
+set -euo pipefail
+
+# ── 1. Secretos: gitleaks sobre lo staged, antes que nada ─────────────────────
+# Por qué existe: la auditoría del ecosistema (2026-08-30) encontró `.gitleaks.toml`
+# en 12 repos y ningún commit que lo ejecutara; un `.env` commiteado por un agente
+# llegaba al historial. Usa el `.gitleaks.toml` de la raíz del repo si existe.
+# Compatible con gitleaks 8.18 (`protect --staged`) y ≥ 8.19 (`git --pre-commit --staged`).
+if command -v gitleaks >/dev/null 2>&1; then
+    if gitleaks git --help >/dev/null 2>&1; then
+        gitleaks_ok=0; gitleaks git --pre-commit --staged --redact --no-banner -v || gitleaks_ok=$?
+    else
+        gitleaks_ok=0; gitleaks protect --staged --redact --no-banner -v || gitleaks_ok=$?
+    fi
+    if [ "$gitleaks_ok" -ne 0 ]; then
+        echo "" >&2
+        echo "❌ pre-commit: gitleaks encontró un posible secreto en lo staged. Se canceló." >&2
+        echo "   Sácalo del commit (o, si es un falso positivo, añade la excepción en .gitleaks.toml)." >&2
+        exit 1
+    fi
+else
+    echo "pre-commit: gitleaks no está instalado; NO se escanearon secretos (instálalo: github.com/gitleaks/gitleaks)." >&2
+fi
+
+# ── 2. Formato: solo los .php staged (Added/Copied/Modified/Renamed) ──────────
+mapfile -t STAGED < <(git diff --cached --name-only --diff-filter=ACMR -- '*.php')
+[ ${#STAGED[@]} -eq 0 ] && exit 0
+
+PINT="./vendor/bin/pint"
+if [ ! -x "$PINT" ]; then
+    echo "pre-commit: no encuentro $PINT (¿corriste composer install?); omito el formateo." >&2
+else
+    echo "pre-commit: formateando ${#STAGED[@]} archivo(s) PHP con Pint…"
+    "$PINT" --quiet "${STAGED[@]}" || true
+
+    # Re-agrega solo lo que Pint tocó, para que el commit incluya el formato.
+    CHANGED=0
+    for f in "${STAGED[@]}"; do
+        if [ -f "$f" ] && ! git diff --quiet -- "$f"; then
+            git add -- "$f"
+            CHANGED=1
+        fi
+    done
+    [ "$CHANGED" -eq 1 ] && echo "pre-commit: Pint aplicó cambios de formato y se incluyeron en el commit."
+fi
+
+# ── 3. Análisis estático: PHPStan sobre los .php staged que él analiza ────────
+# Por qué existe: el CI corre PHPStan con baseline en cero (nivel 8). Un error
+# que entra a develop rompe la rama para todos, y se descubre tarde porque la
+# cuota de Actions está agotada. Acá corta en el origen.
+#
+# Los paths se leen del propio phpstan.neon (unos repos analizan `app`, los
+# paquetes `src`, muni-kit-host `app` y `packages`): pasarle un archivo de fuera
+# lo analizaría sin la configuración pensada para él. Y solo se miran los que
+# ESTÁS commiteando: el hook tiene que ser rápido y no hacerte cargo de deuda
+# heredada de otro archivo.
+PHPSTAN_CFG=""
+for cfg in phpstan.neon phpstan.neon.dist phpstan.dist.neon; do
+    [ -f "$cfg" ] && { PHPSTAN_CFG="$cfg"; break; }
+done
+
+if [ -n "$PHPSTAN_CFG" ]; then
+    mapfile -t PHPSTAN_PATHS < <(
+        sed -n '/^[[:space:]]*paths:/,/^[[:space:]]*[a-zA-Z_]*:[[:space:]]*$/p' "$PHPSTAN_CFG" \
+            | sed -n 's/^[[:space:]]*-[[:space:]]*//p' | sed 's#^\./##; s#/$##'
+    )
+
+    ANALIZAR=()
+    for f in "${STAGED[@]}"; do
+        [ -f "$f" ] || continue
+        for p in "${PHPSTAN_PATHS[@]}"; do
+            case "$f" in "$p"/*) ANALIZAR+=("$f"); break ;; esac
+        done
+    done
+
+    if [ ${#ANALIZAR[@]} -gt 0 ]; then
+        # Sin comillas a propósito: PHPSTAN puede ser un comando de varias palabras.
+        PHPSTAN=""
+        if [ -x ./vendor/bin/phpstan ]; then
+            PHPSTAN="./vendor/bin/phpstan"
+        elif [ -f docker-compose.yml ] || [ -f compose.yml ]; then
+            PHPSTAN="docker compose exec -T app vendor/bin/phpstan"
+        fi
+
+        if [ -n "$PHPSTAN" ]; then
+            echo "pre-commit: PHPStan sobre ${#ANALIZAR[@]} archivo(s)…"
+            # --memory-limit=1G: sin esto PHPStan muere en los repos con Filament.
+            if ! $PHPSTAN analyse --memory-limit=1G --no-progress "${ANALIZAR[@]}"; then
+                echo "" >&2
+                echo "❌ pre-commit: PHPStan encontró errores en los archivos staged. Se canceló." >&2
+                echo "   Arréglalos antes de commitear. Si es deuda heredada del archivo y no" >&2
+                echo "   de tu cambio: git commit --no-verify, y déjalo anotado." >&2
+                exit 1
+            fi
+        else
+            echo "pre-commit: no encuentro phpstan; NO se analizó el código." >&2
+        fi
+    fi
+fi
+
+exit 0
