@@ -20,16 +20,37 @@ class SolicitudesController extends Controller
      */
     public function index(Request $peticion): View
     {
-        $solicitudes = Solicitud::query()
+        $consulta = Solicitud::query()
             ->where('sistema', (string) config('privacidad.sistema'))
             // Sin esto, listar 50 filas consulta 50 veces al titular. Y con
             // `preventLazyLoading` encendido —como corresponde— sería un 500.
-            ->with('titular')
-            ->when($peticion->filled('estado'), fn ($q) => $q->where('estado', $peticion->string('estado')->toString()))
-            ->when($peticion->filled('tipo'), fn ($q) => $q->where('tipo', $peticion->string('tipo')->toString()))
-            ->when($peticion->string('plazo')->toString() === 'vencidas', fn ($q) => $q->vencidas())
-            ->when($peticion->string('plazo')->toString() === 'por_vencer', fn ($q) => $q->porVencer())
-            ->when($peticion->string('plazo')->toString() === 'pendientes', fn ($q) => $q->pendientes())
+            ->with('titular');
+
+        if ($peticion->filled('estado')) {
+            $consulta->where('estado', $peticion->string('estado')->toString());
+        }
+
+        if ($peticion->filled('tipo')) {
+            $consulta->where('tipo', $peticion->string('tipo')->toString());
+        }
+
+        // Los scopes del modelo se llaman por su nombre real
+        // (`getModel()->scopeVencidas($consulta)`) y no por el `when()` con el
+        // `__call` mágico de Eloquent (`$q->vencidas()`): ese último es un
+        // método que solo existe por convención de nombre, y PHPStan no lo
+        // puede tipar sin anotaciones del modelo que este paquete no controla
+        // (vive en el paquete compartido).
+        $plazo = $peticion->string('plazo')->toString();
+
+        if ($plazo === 'vencidas') {
+            $consulta->getModel()->scopeVencidas($consulta);
+        } elseif ($plazo === 'por_vencer') {
+            $consulta->getModel()->scopePorVencer($consulta);
+        } elseif ($plazo === 'pendientes') {
+            $consulta->getModel()->scopePendientes($consulta);
+        }
+
+        $solicitudes = $consulta
             ->orderBy('vence_en')
             ->paginate(25)
             ->withQueryString();

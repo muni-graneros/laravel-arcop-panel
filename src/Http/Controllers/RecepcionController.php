@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -158,7 +159,7 @@ class RecepcionController extends Controller
         $verificacion = app(VerificadorIdentidad::class)->verificar([
             'titular' => $titular,
             'credencial' => (string) ($datos['credencial'] ?? ''),
-            'funcionario_id' => auth()->id(),
+            'funcionario_id' => Auth::id(),
         ]);
 
         $acreditacion = $this->guardarAcreditacion($peticion);

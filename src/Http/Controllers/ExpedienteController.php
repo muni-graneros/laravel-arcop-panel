@@ -2,6 +2,7 @@
 
 namespace Muni\Arcop\Http\Controllers;
 
+use Illuminate\Database\Eloquent\Model;
 use Muni\Shared\Privacidad\Ciclo\EntregaDeCopia;
 use Muni\Shared\Privacidad\Contratos\RegistroDeEvidencia;
 use Muni\Shared\Privacidad\ExportacionDeDatos;
@@ -31,7 +32,9 @@ class ExpedienteController extends Controller
         // vez de una negativa. El motivo es el del módulo, tal cual.
         $motivo = EntregaDeCopia::porQueNo($solicitud);
 
-        abort_if($motivo !== null, 403, $motivo);
+        if ($motivo !== null) {
+            abort(403, $motivo);
+        }
 
         // JSON_THROW_ON_ERROR, y ANTES de asentar la descarga: con un solo byte
         // inválido en un dato del vecino, json_encode() devolvía false, el
@@ -45,7 +48,7 @@ class ExpedienteController extends Controller
 
         $evidencia->registrar('arcop.expediente.descargado', [
             'solicitud_id' => $solicitud->getKey(),
-        ], $solicitud->titular);
+        ], $this->titularDe($solicitud));
 
         $nombre = 'expediente-arcop-'.$solicitud->getKey().'.json';
 
@@ -58,5 +61,19 @@ class ExpedienteController extends Controller
             // de una oficina.
             'Cache-Control' => 'no-store, max-age=0',
         ]);
+    }
+
+    /**
+     * El titular de la solicitud, sin pasar por la propiedad mágica de
+     * Eloquent (`$solicitud->titular`): el modelo `Solicitud` vive en el
+     * paquete compartido y no declara esa relación en su PHPDoc, así que
+     * PHPStan no puede tipar el acceso mágico. Ya está cargada por el
+     * `loadMissing()` de arriba, así que esto no agrega otra consulta.
+     */
+    private function titularDe(Solicitud $solicitud): ?Model
+    {
+        $titular = $solicitud->getRelation('titular');
+
+        return $titular instanceof Model ? $titular : null;
     }
 }

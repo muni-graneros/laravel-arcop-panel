@@ -12,6 +12,23 @@ php artisan vendor:publish --tag=arcop-panel-css      # → public/vendor/arcop-
 php artisan vendor:publish --tag=arcop-panel-config   # opcional
 ```
 
+### El índice de la línea de tiempo del expediente (opcional, MariaDB/MySQL)
+
+`privacidad_bitacora` es inmutable y solo crece; sin índice, cada expediente
+abierto escanea todas las filas del sistema para armar su línea de tiempo. El
+paquete trae una migración publicable —no se aplica sola, como ninguna
+migración de este ecosistema— que agrega una columna generada e indexada:
+
+```bash
+php artisan vendor:publish --tag=arcop-panel-migrations
+php artisan migrate --pretend   # revisar el SQL antes de correrla de verdad
+php artisan migrate
+```
+
+Solo hace algo en MariaDB/MySQL (json_unquote/json_extract como columna
+generada). Sin correrla, el panel sigue funcionando igual: filtra por la clave
+JSON sin índice, como hasta ahora.
+
 El repositorio es privado; en el `composer.json` del proyecto:
 
 ```json
@@ -94,6 +111,14 @@ a un vecino un cese que no ocurre.
   Filament de `laravel-muni-ui`. Dos implementaciones de la misma regla
   divergen, y divergir acá es responderle distinto al mismo vecino según qué
   mesón lo atendió.
+- **El documento que acredita la representación se sube, nunca se tipea.** El
+  formulario de recepción lo recibe como archivo (`<input type="file">`) y es
+  el panel el que decide la ruta en el disco de evidencia al guardarlo
+  (`RecepcionController::guardarAcreditacion()`); el cliente nunca controla esa
+  ruta. Es a propósito: el núcleo **borra** ese documento cuando se suprime al
+  titular, y una ruta tipeada a mano dejaba que cualquiera con `arcop.recibir`
+  hiciera borrar el documento de OTRO vecino, firmando el borrado como
+  evidencia legal.
 
 ## Identidad visual
 
@@ -121,5 +146,7 @@ Para meter el panel dentro del cascarón del sistema, apuntá
 
 ```bash
 composer test   # Pest + Testbench
-composer stan   # PHPStan
+composer stan   # PHPStan, nivel 8, sin baseline (ver phpstan.neon)
 ```
+
+Ver `CHANGELOG.md` para qué cambió en cada versión.
