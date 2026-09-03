@@ -54,6 +54,13 @@ class ArcopPanelServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../resources/css/arcop-panel.css' => public_path('vendor/arcop-panel/arcop-panel.css'),
             ], 'arcop-panel-css');
+
+            // No se carga con loadMigrationsFrom(): las migraciones de este
+            // ecosistema no se aplican solas a producción. El adoptante la
+            // publica y la corre cuando revisó el SQL (ver la migración).
+            $this->publishes([
+                __DIR__.'/../database/migrations' => database_path('migrations'),
+            ], 'arcop-panel-migrations');
         }
     }
 
