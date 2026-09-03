@@ -1,0 +1,29 @@
+name: CI
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+jobs:
+  test:
+    name: Pint + PHPStan + Pest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - run: composer install --no-progress --prefer-dist
+      - name: Pint (linter)
+        run: ./vendor/bin/pint --test
+      # Nivel 8 sin baseline: lo fija phpstan.neon. El README lo prometía desde
+      # antes de que existiera el archivo, así que nadie lo estaba corriendo.
+      - name: PHPStan
+        run: ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+      - name: Pest
+        run: ./vendor/bin/pest
+      # Bloquea a propósito, sin `|| true`: este panel maneja el ciclo ARCOP
+      # (Ley 21.719) y un aviso de seguridad suyo llega a cada adoptante.
+      - name: Auditoría de dependencias (composer audit)
+        run: composer audit --no-dev --format=plain

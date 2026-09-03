@@ -1,0 +1,26 @@
+# Las actualizaciones entran por `develop`, no por `main`: el flujo de este
+# ecosistema es develop → main y una PR de dependabot contra main se lo salta,
+# llegando a producción sin pasar por la rama de integración.
+version: 2
+updates:
+  - package-ecosystem: composer
+    target-branch: develop
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      dependencias-menores:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    target-branch: develop
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    # Un solo PR con todas las actions: antes cada una abría el suyo y cada PR
+    # dispara el CI completo (minutos de Actions son un recurso escaso aquí).
+    groups:
+      actions:
+        patterns: ["*"]

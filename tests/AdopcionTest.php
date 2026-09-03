@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\File;
-
 use Muni\Arcop\AdoptanteIncompleto;
 use Muni\Shared\Privacidad\Contratos\BuscaTitulares;
 use Muni\Shared\Privacidad\Contratos\VerificadorIdentidad;
