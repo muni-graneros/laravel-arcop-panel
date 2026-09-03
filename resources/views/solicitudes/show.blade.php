@@ -103,7 +103,9 @@
                     <time datetime="{{ $entrada->ocurrido_en->toIso8601String() }}">
                         {{ $entrada->ocurrido_en->format('d-m-Y H:i') }}
                     </time>
-                    <span>{{ $entrada->evento }}</span>
+                    {{-- En castellano y no la clave del evento: «solicitud.registrada»
+                         no le dice nada al funcionario ni al vecino que lee su expediente. --}}
+                    <span>{{ \Muni\Arcop\Vista\EtiquetaDeEvento::de($entrada->evento) }}</span>
                 </li>
             @endforeach
         </ol>

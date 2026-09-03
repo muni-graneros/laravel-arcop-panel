@@ -25,5 +25,13 @@ return new class extends Migration
             $tabla->date('fecha_nacimiento')->nullable();
             $tabla->timestamps();
         });
+
+        // Una tabla del sistema adoptante con su propia noción de «solicitud»,
+        // ajena al módulo de privacidad.
+        Schema::create('solicitudes_ajenas', function (Blueprint $tabla): void {
+            $tabla->id();
+            $tabla->string('nombre');
+            $tabla->timestamps();
+        });
     }
 };

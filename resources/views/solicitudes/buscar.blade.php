@@ -9,14 +9,18 @@
     <p class="arcop-guia">Buscá a la persona cuyos datos se piden. Si no aparece, no se puede recibir la
         solicitud en este sistema.</p>
 
-    <form class="arcop-busqueda" method="GET" action="{{ route('arcop.solicitudes.buscar') }}">
+    {{-- POST y no GET: lo tipeado —un nombre, un RUT— no queda en la URL, y por
+         lo tanto tampoco en el access log ni en el historial del navegador
+         compartido del mesón. --}}
+    <form class="arcop-busqueda" method="POST" action="{{ route('arcop.solicitudes.buscar.ejecutar') }}">
+        @csrf
         <div class="arcop-campo">
             <label for="q">Nombre o documento</label>
             {{-- El botón va DENTRO del campo, pegado al input: si queda fuera,
                  se alinea con el fondo del bloque —que incluye la línea de
                  ayuda— y aparece un escalón respecto del cuadro de texto. --}}
             <div class="arcop-campo__fila">
-                <input id="q" name="q" type="search" value="{{ $termino }}" autofocus
+                <input id="q" name="q" type="search" value="{{ $termino }}"
                        aria-describedby="q-ayuda" minlength="{{ $minimo }}">
                 <button class="arcop-boton arcop-boton--principal" type="submit">Buscar</button>
             </div>
@@ -33,10 +37,12 @@
     @elseif ($buscoDeVerdad)
         <h2>Resultados</h2>
         <ul class="arcop-resultados">
-            @foreach ($resultados as $clave => $etiqueta)
+            {{-- El enlace lleva la referencia opaca que emitió ESTA búsqueda,
+                 nunca la clave del titular. --}}
+            @foreach ($resultados as $referencia => $etiqueta)
                 <li>
                     <span>{{ $etiqueta }}</span>
-                    <a class="arcop-boton" href="{{ route('arcop.solicitudes.formulario', $clave) }}">
+                    <a class="arcop-boton" href="{{ route('arcop.solicitudes.formulario', $referencia) }}">
                         Elegir<span class="arcop-sr"> a {{ $etiqueta }}</span>
                     </a>
                 </li>

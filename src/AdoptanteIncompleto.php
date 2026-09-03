@@ -32,4 +32,14 @@ class AdoptanteIncompleto extends RuntimeException
             .'fácil de cometer.',
         );
     }
+
+    public static function faltaElDiscoDeEvidencia(): self
+    {
+        return new self(
+            'Este sistema no declaró en qué disco guarda los documentos de evidencia (privacidad.disco_evidencia, '
+            .'PRIVACIDAD_DISCO_EVIDENCIA). Sin eso el panel no guarda el documento que acredita la representación '
+            .'en cualquier parte: el módulo lo borra de ESE disco al suprimir al titular, y un documento guardado '
+            .'en otro se vuelve un dato personal perdido que nadie puede encontrar para suprimir.',
+        );
+    }
 }

@@ -19,17 +19,25 @@
     <form method="POST" action="{{ route('arcop.solicitudes.rectificar.aplicar', $solicitud) }}" class="arcop-formulario">
         @csrf
 
-        @foreach ($campos as $campo)
-            <div class="arcop-campo">
-                <label for="valor-{{ $campo }}">{{ \Illuminate\Support\Str::headline($campo) }}</label>
-                <input id="valor-{{ $campo }}" name="valores[{{ $campo }}]" type="text" maxlength="255"
-                       value="{{ old('valores.'.$campo, $titular?->getAttribute($campo)) }}">
-            </div>
-        @endforeach
+        <fieldset class="arcop-campo" @error('valores') aria-invalid="true" aria-describedby="valores-error" @enderror>
+            <legend>Datos rectificables</legend>
+            @foreach ($campos as $campo)
+                <div class="arcop-campo">
+                    <label for="valor-{{ $campo }}">{{ \Illuminate\Support\Str::headline($campo) }}</label>
+                    <input id="valor-{{ $campo }}" name="valores[{{ $campo }}]" type="text" maxlength="255"
+                           value="{{ old('valores.'.$campo, $titular?->getAttribute($campo)) }}"
+                           @error('valores.'.$campo) aria-invalid="true" aria-describedby="valores.{{ $campo }}-error" @enderror>
+                    @include('arcop-panel::partes.error', ['campo' => 'valores.'.$campo])
+                </div>
+            @endforeach
+            @include('arcop-panel::partes.error', ['campo' => 'valores'])
+        </fieldset>
 
         <div class="arcop-campo">
             <label for="fundamento">Fundamento de la resolución</label>
-            <textarea id="fundamento" name="fundamento" rows="4" required>{{ old('fundamento') }}</textarea>
+            <textarea id="fundamento" name="fundamento" rows="4" required
+                      @error('fundamento') aria-invalid="true" aria-describedby="fundamento-error" @enderror>{{ old('fundamento') }}</textarea>
+            @include('arcop-panel::partes.error', ['campo' => 'fundamento'])
         </div>
 
         <button class="arcop-boton arcop-boton--principal" type="submit">Rectificar y acoger</button>
