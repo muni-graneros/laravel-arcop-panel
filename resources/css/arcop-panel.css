@@ -160,7 +160,11 @@
     font-size: 0.9rem;
 }
 
-a {
+/* Todo cuelga de .arcop-cuerpo, también los enlaces y el foco de más abajo:
+   este archivo se publica al public/ del adoptante y se carga dentro de SU
+   cascarón. Una regla suelta sobre `a` le cambiaba el color a la barra y a la
+   navegación del sistema anfitrión. */
+.arcop-cuerpo a {
     color: var(--arcop-acento);
 }
 
@@ -177,8 +181,11 @@ a {
     min-width: 1.5rem;
 }
 
-/* El foco se ve siempre y no queda tapado por la cabecera. */
-:where(a, button, input, select, textarea):focus-visible {
+/* El foco se ve siempre y no queda tapado por la cabecera. Acotado a
+   .arcop-cuerpo: sin el prefijo, :where() no suma especificidad y la regla
+   le cambiaba el anillo de foco a CUALQUIER enlace o campo del sistema
+   anfitrión, no solo a los del panel ARCOP. */
+.arcop-cuerpo :where(a, button, input, select, textarea):focus-visible {
     outline: 3px solid var(--arcop-acento);
     outline-offset: 2px;
     scroll-margin-top: 5rem;
@@ -421,7 +428,9 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    * {
+    /* Acotado a .arcop-cuerpo: un `*` desnudo apaga las animaciones de TODA
+       la página anfitriona, no solo del panel. */
+    .arcop-cuerpo * {
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
     }
