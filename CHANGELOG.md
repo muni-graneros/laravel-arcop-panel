@@ -9,6 +9,10 @@ entre versiones menores sin previo aviso.
 
 Trabajo ya en la rama `develop`, sin tag todavía.
 
+_Nada todavía._
+
+## [v0.4.0] - 2026-09-03
+
 ### Seguridad
 
 - La documentación que acredita la representación se sube por archivo; el
