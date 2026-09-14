@@ -10,16 +10,15 @@ Sin Filament. Sin Livewire. Sin Tailwind. Sin JavaScript. Sin `package.json`.
 - PHP **^8.3**
 - Laravel **12 o 13** (`illuminate/*` `^12.0|^13.0`)
 - **`muni-graneros/laravel-muni-shared` `^1.16`** — de ahí salen las tablas, los
-  modelos (`Solicitud`, bitácora) y las reglas legales del ciclo. También es
-  privado.
+  modelos (`Solicitud`, bitácora) y las reglas legales del ciclo.
 
 ## Instalación
 
-Los dos paquetes son privados, así que **el `composer.json` del proyecto
-adoptante** tiene que declarar los dos repositorios VCS. Composer no hereda los
-`repositories` de un paquete instalado, solo lee los de la raíz: declarar solo
-`arcop-panel` termina en un «could not be found» de `laravel-muni-shared` que no
-dice por qué.
+Ninguno de los dos paquetes está en Packagist, así que **el `composer.json` del
+proyecto adoptante** tiene que declarar los dos repositorios VCS. Composer no
+hereda los `repositories` de un paquete instalado, solo lee los de la raíz:
+declarar solo `arcop-panel` termina en un «could not be found» de
+`laravel-muni-shared` que no dice por qué.
 
 ```json
 "repositories": {
@@ -31,10 +30,14 @@ dice por qué.
 }
 ```
 
-La autenticación va con un PAT de GitHub configurado **fuera del repositorio**
+**No hace falta token**: `laravel-arcop-panel` y `laravel-muni-shared` son
+repositorios públicos de `muni-graneros` (verificado el 2026-09-14). Sí lo
+necesitan otros paquetes del ecosistema que sí son privados —`laravel-muni-acceso`,
+`laravel-panel-base`, `laravel-anonimizacion`, `laravel-centinela`,
+`laravel-rag`—: ahí el PAT de GitHub va configurado **fuera del repositorio**
 (`composer config --global --auth github-oauth.github.com <token>`, o la
-variable `COMPOSER_AUTH` en el servidor de despliegue). El token no se escribe
-nunca en `composer.json` ni en un `.env` versionado.
+variable `COMPOSER_AUTH` en el servidor de despliegue), nunca escrito en
+`composer.json` ni en un `.env` versionado.
 
 > **El caret en 0.x no hace lo que parece.** Este paquete sigue en `0.x`, y ahí
 > `^0.4` acepta 0.4.1 y 0.4.2 pero **no** 0.5. Al publicarse una menor hay que
