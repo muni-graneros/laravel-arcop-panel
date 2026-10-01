@@ -235,7 +235,7 @@ a un vecino un cese que no ocurre.
 
 El CSS está escrito sobre los tokens `--muni-*`. Con `laravel-muni-ui` presente
 hereda la identidad municipal; sin él usa sus propios valores. Modo oscuro por
-`prefers-color-scheme`, por `.dark` y por `data-muni-theme="dark"`.
+`prefers-color-scheme` (solo en pantalla, y cede ante `.light`, `data-theme="light"` o `data-muni-theme="light"` del anfitrión), por `.dark` y por `data-muni-theme="dark"`.
 
 **Si reemplazás el layout, envolvé el contenido en `.arcop-cuerpo`.** Ahí viven los
 tokens de color y la jerarquía de títulos; sin esa clase el panel hereda el reset

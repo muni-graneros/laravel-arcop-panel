@@ -11,12 +11,13 @@ Trabajo ya en la rama `develop`, sin tag todavía.
 
 ### Corregido
 
-- La media query `@media (prefers-color-scheme: dark)` se imponía cuando el
-  sistema operativo estaba en modo oscuro, pisando el tema forzado del
-  anfitrión (`.dark` en `<html>` que maneja Filament). Ahora la media query
-  respeta los activadores explícitos: `html:not(.dark):not([data-muni-theme="dark"]) .arcop-cuerpo`,
-  asegurando que si el panel está dentro de un contenedor con tema forzado,
-  el tema del anfitrión prevalece sobre las preferencias del SO.
+- **El panel salía oscuro dentro de un anfitrión en claro si el sistema operativo estaba en
+  oscuro.** La media query `prefers-color-scheme: dark` de `arcop-panel.css` se aplicaba sin
+  excepciones. Ahora excluye los activadores de claro del ecosistema (`[data-muni-theme="light"]`,
+  `[data-theme="light"]`, `.light`, los mismos que usa `laravel-muni-ui`) y solo rige en pantalla
+  (`screen and`): una hoja impresa no tiene modo oscuro. El oscuro forzado por el anfitrión
+  (`.dark`, `data-muni-theme="dark"`) sigue funcionando por su regla explícita. Hay que volver a
+  publicar el CSS (`php artisan vendor:publish --tag=arcop-panel-css --force`).
 
 ## [v0.4.0] - 2026-09-03
 
