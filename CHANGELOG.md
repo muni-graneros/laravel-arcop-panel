@@ -9,7 +9,14 @@ entre versiones menores sin previo aviso.
 
 Trabajo ya en la rama `develop`, sin tag todavía.
 
-_Nada todavía._
+### Corregido
+
+- La media query `@media (prefers-color-scheme: dark)` se imponía cuando el
+  sistema operativo estaba en modo oscuro, pisando el tema forzado del
+  anfitrión (`.dark` en `<html>` que maneja Filament). Ahora la media query
+  respeta los activadores explícitos: `html:not(.dark):not([data-muni-theme="dark"]) .arcop-cuerpo`,
+  asegurando que si el panel está dentro de un contenedor con tema forzado,
+  el tema del anfitrión prevalece sobre las preferencias del SO.
 
 ## [v0.4.0] - 2026-09-03
 

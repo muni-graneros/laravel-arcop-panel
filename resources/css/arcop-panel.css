@@ -30,8 +30,10 @@
     line-height: 1.5;
 }
 
+/* Media query como fallback, pero solo si el anfitrión no fuerza tema explícitamente.
+   Si <html> tiene .dark, las reglas siguientes (línea ~50) ganan. */
 @media (prefers-color-scheme: dark) {
-    .arcop-cuerpo {
+    html:not(.dark):not([data-muni-theme="dark"]) .arcop-cuerpo {
         --arcop-fondo: var(--muni-bg, #081418);
         --arcop-superficie: var(--muni-surface, #0f2025);
         --arcop-borde: var(--muni-border, #2b4149);

@@ -104,3 +104,15 @@ it('ninguna regla del CSS alcanza al cascarón del adoptante: todo selector cuel
 
     expect($sueltos)->toBe([], 'Selectores que pisan al adoptante: '.implode(' | ', $sueltos));
 });
+
+it('la media query de tema respeta el .dark forzado del anfitrión: no pisa un tema claro', function () {
+    $css = (string) file_get_contents(__DIR__.'/../resources/css/arcop-panel.css');
+
+    // Verifica que la media query (prefers-color-scheme: dark) incluya selectores
+    // que NO se aplican si <html> tiene .dark o [data-muni-theme="dark"].
+    // El selector debe ser: html:not(.dark):not([data-muni-theme="dark"]) .arcop-cuerpo
+    // Sin esto, si el SO está en oscuro y el anfitrión fuerza claro con .dark,
+    // los colores oscuros de la media query pisan los colores claros del anfitrión.
+
+    expect($css)->toMatch('/html:not\(\.dark\):not\(\[data-muni-theme="dark"\]\)\s+\.arcop-cuerpo/', 'La media query debe respetar .dark');
+});
