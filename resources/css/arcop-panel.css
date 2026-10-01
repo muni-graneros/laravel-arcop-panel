@@ -30,8 +30,14 @@
     line-height: 1.5;
 }
 
-@media (prefers-color-scheme: dark) {
-    .arcop-cuerpo {
+/* El oscuro del sistema operativo es el valor por defecto, pero cede ante un anfitrión
+   que fuerza el CLARO (`data-muni-theme="light"`, `data-theme="light"`, `.light`: los
+   mismos activadores que excluyen esta regla en muni-ui). Sin esa exclusión un panel en
+   claro con el SO en oscuro pintaba este bloque oscuro sobre una página clara.
+   El oscuro forzado por el anfitrión (`.dark`, `data-muni-theme="dark"`) lo da la regla
+   explícita de abajo. Solo en pantalla: una hoja impresa no tiene modo oscuro. */
+@media screen and (prefers-color-scheme: dark) {
+    html:not([data-muni-theme="light"]):not([data-theme="light"]):not(.light) .arcop-cuerpo {
         --arcop-fondo: var(--muni-bg, #081418);
         --arcop-superficie: var(--muni-surface, #0f2025);
         --arcop-borde: var(--muni-border, #2b4149);

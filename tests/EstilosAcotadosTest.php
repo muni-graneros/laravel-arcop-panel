@@ -104,3 +104,26 @@ it('ninguna regla del CSS alcanza al cascarón del adoptante: todo selector cuel
 
     expect($sueltos)->toBe([], 'Selectores que pisan al adoptante: '.implode(' | ', $sueltos));
 });
+
+it('la media query oscura cede ante un anfitrión que fuerza el claro, y el .dark del anfitrión sigue oscureciendo', function () {
+    $css = (string) file_get_contents(__DIR__.'/../resources/css/arcop-panel.css');
+
+    // El bloque de la media query oscura, hasta su llave de cierre.
+    expect(preg_match('/@media\s+([^{]*prefers-color-scheme:\s*dark[^{]*)\{\s*([^{]+)\{/', $css, $m))->toBe(1);
+    [, $consulta, $selector] = $m;
+
+    // Solo pantalla: una hoja impresa no tiene modo oscuro (mismo criterio que muni-ui).
+    expect($consulta)->toContain('screen');
+
+    // Los activadores de CLARO del ecosistema (muni-ui, DESIGN §3) excluyen la regla del
+    // sistema operativo. Sin esto, un anfitrión en claro con el SO en oscuro pinta el
+    // panel oscuro dentro de una página clara.
+    foreach (['[data-muni-theme="light"]', '[data-theme="light"]', '.light'] as $claro) {
+        expect($selector)->toContain(':not('.$claro.')');
+    }
+
+    // Excluir `.dark` ahí sería redundante y engañoso: el oscuro del anfitrión lo da la
+    // regla explícita de abajo, que tiene que seguir existiendo.
+    expect($selector)->not->toContain(':not(.dark)');
+    expect($css)->toMatch('/\.dark \.arcop-cuerpo,\s*\[data-muni-theme="dark"\] \.arcop-cuerpo\s*\{/');
+});
