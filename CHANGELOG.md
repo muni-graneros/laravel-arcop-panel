@@ -7,7 +7,8 @@ entre versiones menores sin previo aviso.
 
 ## Sin publicar
 
-Trabajo ya en la rama `develop`, sin tag todavía.
+## [v0.4.1] - 2026-10-01
+
 
 ### Corregido
 
