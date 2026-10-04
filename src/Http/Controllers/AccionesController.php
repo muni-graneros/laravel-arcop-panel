@@ -6,6 +6,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Muni\Shared\Privacidad\Ciclo\AlcanceDelCese;
 use Muni\Shared\Privacidad\Ciclo\PreviaDeSupresion;
@@ -42,12 +43,11 @@ class AccionesController extends Controller
         $this->exigirPendiente($solicitud);
         $this->exigirTipoCorrecto($accion, $solicitud);
 
-        $solicitud->loadMissing('titular');
-        $titular = $solicitud->titular;
+        $titular = $this->titularDe($solicitud);
 
         return view("arcop-panel::solicitudes.{$accion}", [
             'solicitud' => $solicitud,
-            'advertencia' => SeparacionDeFunciones::advertencia($solicitud, auth()->id()),
+            'advertencia' => SeparacionDeFunciones::advertencia($solicitud, Auth::id()),
             'resultados' => ResultadosDisponibles::para($solicitud->tipo),
             'nota' => ResultadosDisponibles::nota($solicitud->tipo),
             'previa' => $accion === 'suprimir' ? PreviaDeSupresion::de($solicitud) : null,
@@ -170,7 +170,7 @@ class AccionesController extends Controller
      */
     private function cambiosPedidos(Solicitud $solicitud, array $valores): array
     {
-        $titular = $solicitud->titular;
+        $titular = $this->titularDe($solicitud);
 
         if (! $titular instanceof TitularDeDatos) {
             return [];
@@ -180,9 +180,9 @@ class AccionesController extends Controller
 
         foreach ($valores as $campo => $nuevo) {
             $nuevo = is_string($nuevo) ? trim($nuevo) : $nuevo;
-            $actual = $titular instanceof Model
-                ? $titular->getAttribute((string) $campo)
-                : null;
+            // $titular ya es Model acá: titularDe() solo devuelve Model|null,
+            // y el early return de arriba descartó el null.
+            $actual = $titular->getAttribute((string) $campo);
 
             if ((string) $nuevo === (string) $actual) {
                 continue;
@@ -192,6 +192,25 @@ class AccionesController extends Controller
         }
 
         return $cambios;
+    }
+
+    /**
+     * El titular de la solicitud, sin pasar por la propiedad mágica de
+     * Eloquent (`$solicitud->titular`): el modelo `Solicitud` vive en el
+     * paquete compartido y no declara esa relación en su PHPDoc, así que
+     * PHPStan no puede tipar el acceso mágico. `getRelation()` sí está
+     * tipado, y con el `relationLoaded()` de antes se preserva exactamente el
+     * mismo comportamiento de carga perezosa que tenía la propiedad mágica.
+     */
+    private function titularDe(Solicitud $solicitud): ?Model
+    {
+        if (! $solicitud->relationLoaded('titular')) {
+            $solicitud->load('titular');
+        }
+
+        $titular = $solicitud->getRelation('titular');
+
+        return $titular instanceof Model ? $titular : null;
     }
 
     private function exigirPendiente(Solicitud $solicitud): void

@@ -1,12 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Testing\TestResponse;
 use Muni\Arcop\Permisos;
 use Muni\Arcop\Tests\Fixtures\UsuarioDePrueba;
 use Muni\Arcop\Tests\Fixtures\VecinoDePrueba;
 use Muni\Shared\Privacidad\BaseLicitud;
 use Muni\Shared\Privacidad\EstadoDeSolicitud;
+use Muni\Shared\Privacidad\ExportacionDeDatos;
 use Muni\Shared\Privacidad\Modelos\EntradaBitacora;
 use Muni\Shared\Privacidad\Modelos\Finalidad;
 use Muni\Shared\Privacidad\Modelos\Solicitud;
@@ -34,17 +34,6 @@ beforeEach(function () {
     ]);
 });
 
-function recibirSolicitud(array $extra = []): TestResponse
-{
-    return test()->post('/privacidad/solicitudes', array_merge([
-        'titular_id' => test()->vecino->getKey(),
-        'tipo' => TipoDeSolicitud::Acceso->value,
-        'solicitante' => 'titular',
-        'detalle' => 'Pide copia de todo lo que el municipio tiene sobre ella.',
-        'credencial' => '11.111.111-1',
-    ], $extra));
-}
-
 it('recibe una solicitud y el plazo legal empieza a correr', function () {
     $this->actingAs($this->funcionario);
 
@@ -70,7 +59,7 @@ it('no recibe nada si la credencial no acredita al titular, y lo dice con el men
 it('el buscador no consulta por debajo del mínimo de caracteres', function () {
     $this->actingAs($this->funcionario);
 
-    $this->get('/privacidad/solicitudes/recibir?q=Ro')
+    buscarTitulares('Ro')
         ->assertOk()
         ->assertSee('al menos 3 caracteres')
         ->assertDontSee('Rocío Paredes');
@@ -79,7 +68,7 @@ it('el buscador no consulta por debajo del mínimo de caracteres', function () {
 it('cada búsqueda de titulares queda en la bitácora', function () {
     $this->actingAs($this->funcionario);
 
-    $this->get('/privacidad/solicitudes/recibir?q=Rocío')->assertOk()->assertSee('Rocío Paredes');
+    buscarTitulares('Rocío')->assertOk()->assertSee('Rocío Paredes');
 
     expect(EntradaBitacora::where('evento', 'arcop.titulares.buscados')->count())->toBe(1);
 });
@@ -88,10 +77,10 @@ it('el buscador tiene tope de intentos: es por donde se enumera el padrón', fun
     $this->actingAs($this->funcionario);
 
     foreach (range(1, 20) as $intento) {
-        $this->get('/privacidad/solicitudes/recibir?q=Roc'.$intento)->assertOk();
+        $this->post('/privacidad/solicitudes/recibir', ['q' => 'Roc'.$intento])->assertRedirect();
     }
 
-    $this->get('/privacidad/solicitudes/recibir?q=Rocio')->assertStatus(429);
+    $this->post('/privacidad/solicitudes/recibir', ['q' => 'Rocio'])->assertStatus(429);
 });
 
 it('una solicitud de otro sistema no existe para este panel', function () {
@@ -252,7 +241,7 @@ it('ofrece el enlace del sistema cuando el adoptante lo declara', function () {
 
     $this->actingAs($this->funcionario);
 
-    $this->get('/privacidad/solicitudes/recibir/'.$this->vecino->getKey())
+    $this->get('/privacidad/solicitudes/recibir/'.referenciaDe($this->vecino))
         ->assertOk()
         ->assertSee('Acreditar la fecha de nacimiento')
         ->assertSee('/ayuda-del-sistema/'.$this->vecino->getKey());
@@ -261,7 +250,7 @@ it('ofrece el enlace del sistema cuando el adoptante lo declara', function () {
 it('sin declararlo, la pantalla de recepción no inventa ningún enlace', function () {
     $this->actingAs($this->funcionario);
 
-    $this->get('/privacidad/solicitudes/recibir/'.$this->vecino->getKey())
+    $this->get('/privacidad/solicitudes/recibir/'.referenciaDe($this->vecino))
         ->assertOk()
         ->assertDontSee('Acreditar la fecha de nacimiento');
 });
@@ -282,4 +271,84 @@ it('un caso cerrado lo dice, en vez de dejar la sección de acciones vacía', fu
         ->assertDontSee('Tomar el caso')
         // Y el motivo de la copia no se repite: ya se explicó que está cerrado.
         ->assertDontSee('solo el acceso y la portabilidad');
+});
+
+it('suprime de verdad por POST: el titular queda anonimizado y la bitácora lo prueba', function () {
+    $this->actingAs($this->funcionario);
+    recibirSolicitud(['tipo' => TipoDeSolicitud::Supresion->value, 'detalle' => 'Pide que borren sus datos.']);
+    $solicitud = Solicitud::sole();
+
+    $this->post("/privacidad/solicitudes/{$solicitud->getKey()}/suprimir", [
+        'fundamento' => 'Ninguna finalidad obliga a conservar: se acoge y se suprime.',
+    ])->assertRedirect();
+
+    expect($this->vecino->fresh()->nombre)->toBe('Anonimizado')
+        ->and($solicitud->fresh()->estado->esAcogida())->toBeTrue()
+        ->and(EntradaBitacora::where('evento', 'supresion.aplicada')->count())->toBe(1);
+});
+
+it('un campo inválido se marca en el propio campo, no solo en el resumen de arriba', function () {
+    $this->actingAs($this->funcionario);
+    $referencia = referenciaDe($this->vecino);
+
+    $this->post('/privacidad/solicitudes', [
+        'titular' => $referencia,
+        'tipo' => TipoDeSolicitud::Acceso->value,
+        'solicitante' => 'titular',
+        'detalle' => 'x',
+        'credencial' => '11.111.111-1',
+    ])->assertSessionHasErrors('detalle');
+
+    $this->get('/privacidad/solicitudes/recibir/'.$referencia)
+        ->assertOk()
+        ->assertSee('aria-invalid="true"', false)
+        ->assertSee('id="detalle-error"', false)
+        ->assertSee('aria-describedby="detalle-ayuda detalle-error"', false);
+});
+
+it('el buscador no se lleva el foco al cargar: el lector de pantalla tiene que llegar a la cabecera', function () {
+    $this->actingAs($this->funcionario);
+
+    $this->get('/privacidad/solicitudes/recibir')->assertOk()->assertDontSee('autofocus');
+});
+
+it('la bitácora del caso se lee en castellano, no como claves de evento', function () {
+    $this->actingAs($this->funcionario);
+    recibirSolicitud();
+    $solicitud = Solicitud::sole();
+
+    // Dos GET: el primero consume el aviso «Solicitud recibida…» de la
+    // redirección, que si no enmascararía lo que se está probando.
+    $this->get("/privacidad/solicitudes/{$solicitud->getKey()}");
+
+    $this->get("/privacidad/solicitudes/{$solicitud->getKey()}")
+        ->assertOk()
+        ->assertSee('Recepción de la solicitud')
+        ->assertDontSee('solicitud.registrada');
+});
+
+it('un tipo o un solicitante manipulados son un error de validación, no un 500', function () {
+    $this->actingAs($this->funcionario);
+
+    recibirSolicitud(['tipo' => 'inventado'])->assertSessionHasErrors('tipo');
+    recibirSolicitud(['solicitante' => 'marciano'])->assertSessionHasErrors('solicitante');
+
+    expect(Solicitud::count())->toBe(0);
+});
+
+it('si el expediente no se puede serializar, no se entrega un archivo vacío ni se certifica la entrega', function () {
+    $this->actingAs($this->funcionario);
+    recibirSolicitud();
+    $solicitud = Solicitud::sole();
+
+    // Un solo byte inválido en un dato del vecino basta para que json_encode()
+    // devuelva false.
+    $this->mock(ExportacionDeDatos::class, function ($doble): void {
+        $doble->shouldReceive('paraSolicitud')->andReturn(['nombre' => "\xB1\x31"]);
+    });
+
+    $respuesta = $this->get("/privacidad/solicitudes/{$solicitud->getKey()}/expediente");
+
+    expect($respuesta->getStatusCode())->not->toBe(200)
+        ->and(EntradaBitacora::where('evento', 'arcop.expediente.descargado')->count())->toBe(0);
 });

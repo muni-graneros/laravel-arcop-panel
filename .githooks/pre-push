@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# ──────────────────────────────────────────────────────────────────────────────
+# pre-push — bloquea el envío directo a `main` y corre la suite antes de publicar
+# a una rama compartida.
+#
+# 1) Envío a `main`: SIEMPRE se rechaza. La protección de rama de GitHub no está
+#    disponible en estos repositorios (privados en cuentas Free: ahí ni «branch
+#    protection» ni «rulesets» se pueden configurar). Sin nada del lado del
+#    servidor, lo único que queda es cortar del lado de acá. El flujo del
+#    ecosistema es develop → main por PR, nunca directo.
+#    No hay override por variable de entorno para esta parte: si de verdad hace
+#    falta saltarla, `git push --no-verify` deja claro que fue a propósito.
+#
+# 2) Suite: solo al publicar a `develop`/`main`. En ramas de trabajo el envío es
+#    frecuente y la suite tarda; cobrárselo a cada WIP haría que se saltee el
+#    hook siempre, y un hook que se ignora no protege nada.
+#
+# Saltárselo puntualmente:      git push --no-verify
+# Saltarse solo los tests:      export SKIP_PREPUSH_TESTS=1
+# ──────────────────────────────────────────────────────────────────────────────
+set -euo pipefail
+
+rechazado_a_main=0
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+    case "$remote_ref" in
+        refs/heads/main | refs/heads/master) rechazado_a_main=1 ;;
+    esac
+done
+
+if [ "$rechazado_a_main" -eq 1 ]; then
+    echo "" >&2
+    echo "❌ pre-push: envío directo a «main» bloqueado." >&2
+    echo "   El trabajo entra por «develop» y desde ahí sube a «main» por PR." >&2
+    echo "   Si de verdad hace falta:  git push --no-verify" >&2
+    exit 1
+fi
+
+if [ "${SKIP_PREPUSH_TESTS:-0}" = "1" ]; then
+    echo "pre-push: tests omitidos (SKIP_PREPUSH_TESTS=1)."
+    exit 0
+fi
+
+RAMA_ACTUAL="$(git rev-parse --abbrev-ref HEAD)"
+case "$RAMA_ACTUAL" in
+    develop | main) ;;
+    *)
+        echo "pre-push: rama de trabajo ($RAMA_ACTUAL) — no se corre la suite."
+        echo "          Antes de abrir la PR: make test"
+        exit 0
+        ;;
+esac
+
+# Solo si el repo tiene un target `test` en el Makefile.
+if [ -f Makefile ] && grep -qE '^test:' Makefile; then
+    # Sin contenedores arriba no hay dónde correr los tests: no se bloquea el
+    # envío (sería peor que el remedio), pero se avisa fuerte.
+    if ! docker compose ps --status running --services 2>/dev/null | grep -q '^app$'; then
+        echo "pre-push: los contenedores no están arriba; NO se corrieron los tests."
+        echo "          Levántalos con 'make up' y corre 'make test' antes de abrir la PR."
+        exit 0
+    fi
+
+    echo "pre-push: corriendo la suite… — omitir con git push --no-verify"
+    if ! make test; then
+        echo "" >&2
+        echo "❌ pre-push: hay tests en rojo. El envío se canceló." >&2
+        echo "   Arréglalos, o usa 'git push --no-verify' si sabes lo que haces." >&2
+        exit 1
+    fi
+    echo "✅ pre-push: suite en verde."
+fi
+
+exit 0

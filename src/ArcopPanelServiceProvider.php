@@ -54,6 +54,13 @@ class ArcopPanelServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../resources/css/arcop-panel.css' => public_path('vendor/arcop-panel/arcop-panel.css'),
             ], 'arcop-panel-css');
+
+            // No se carga con loadMigrationsFrom(): las migraciones de este
+            // ecosistema no se aplican solas a producción. El adoptante la
+            // publica y la corre cuando revisó el SQL (ver la migración).
+            $this->publishes([
+                __DIR__.'/../database/migrations' => database_path('migrations'),
+            ], 'arcop-panel-migrations');
         }
     }
 
@@ -91,10 +98,16 @@ class ArcopPanelServiceProvider extends ServiceProvider
      *
      * Va en el binding y no en cada controlador a propósito: una ruta nueva que
      * mañana olvide el filtro no puede saltárselo.
+     *
+     * El parámetro es `solicitudArcop` y no `solicitud`: `Route::bind()` es
+     * global a la aplicación adoptante y gana sobre el binding implícito, así
+     * que un nombre genérico le cambiaría el modelo a cualquier `{solicitud}`
+     * del sistema que instale el paquete —licencias de conducir tiene once—.
+     * Un nombre que nadie más usa no colisiona con nadie.
      */
     private function registrarResolucionDeSolicitud(): void
     {
-        Route::bind('solicitud', fn (string $id): Solicitud => Solicitud::query()
+        Route::bind('solicitudArcop', fn (string $id): Solicitud => Solicitud::query()
             ->where('sistema', (string) config('privacidad.sistema'))
             ->findOrFail($id));
     }

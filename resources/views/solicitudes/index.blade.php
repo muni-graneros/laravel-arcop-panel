@@ -102,6 +102,6 @@
             </table>
         </div>
 
-        {{ $solicitudes->links() }}
+        {{ $solicitudes->links('arcop-panel::partes.paginacion') }}
     @endif
 @endsection

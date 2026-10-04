@@ -5,11 +5,14 @@ namespace Muni\Arcop\Tests;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Muni\Arcop\ArcopPanelServiceProvider;
 use Muni\Arcop\Tests\Fixtures\BuscadorDeVecinos;
+use Muni\Arcop\Tests\Fixtures\SolicitudAjena;
 use Muni\Arcop\Tests\Fixtures\UsuarioDePrueba;
 use Muni\Arcop\Tests\Fixtures\VerificadorDeMeson;
 use Muni\Shared\MuniSharedServiceProvider;
 use Muni\Shared\Privacidad\Contratos\BuscaTitulares;
+use Muni\Shared\Privacidad\Contratos\PropagaSupresion;
 use Muni\Shared\Privacidad\Contratos\VerificadorIdentidad;
+use Muni\Shared\Privacidad\SupresionSoloLocal;
 use Orchestra\Testbench\TestCase as Base;
 
 abstract class TestCase extends Base
@@ -41,6 +44,11 @@ abstract class TestCase extends Base
         // ninguna de las dos.
         $app->bind(BuscaTitulares::class, BuscadorDeVecinos::class);
         $app->bind(VerificadorIdentidad::class, VerificadorDeMeson::class);
+
+        // Como atencionvecino: este sistema no es modelo de lectura del maestro
+        // de personas, su supresión es la definitiva. Sin declararlo, el módulo
+        // se niega a suprimir.
+        $app->bind(PropagaSupresion::class, SupresionSoloLocal::class);
     }
 
     /**
@@ -60,6 +68,14 @@ abstract class TestCase extends Base
         // Una ruta del sistema adoptante, para ejercitar el enlace de ayuda que
         // el panel ofrece en la recepción.
         $router->get('/ayuda-del-sistema/{titular}', fn (): string => 'ayuda')->name('ayuda.de.prueba');
+
+        // Una ruta del sistema adoptante con SU propio `{solicitud}` —licencias
+        // de conducir tiene once así—, resuelta por binding implícito contra su
+        // modelo. El paquete no puede secuestrarle ese parámetro.
+        $router->middleware('web')->get(
+            '/ajeno/{solicitud}',
+            fn (SolicitudAjena $solicitud): string => 'ajena: '.$solicitud->nombre,
+        )->name('ajeno.mostrar');
     }
 
     protected function defineDatabaseMigrations(): void
