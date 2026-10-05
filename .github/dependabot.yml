@@ -10,17 +10,19 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    # Menores y parches en un solo PR; las mayores quedan sueltas para revisarlas una por una.
     groups:
-      dependencias-menores:
+      menores:
+        patterns: ["*"]
         update-types: [minor, patch]
   - package-ecosystem: github-actions
     target-branch: develop
     directory: "/"
     schedule:
       interval: weekly
+      day: monday
     open-pull-requests-limit: 3
-    # Un solo PR con todas las actions: antes cada una abría el suyo y cada PR
-    # dispara el CI completo (minutos de Actions son un recurso escaso aquí).
+    # Todas las actions (mayores incluidas) en un solo PR: cada PR suelta corria el CI completo.
     groups:
-      actions:
+      acciones:
         patterns: ["*"]
