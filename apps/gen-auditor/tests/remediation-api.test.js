@@ -63,11 +63,22 @@ test('ciclo completo por HTTP: activo → hallazgo → plan → entrega → veri
     // ── 2. Superficie verificada y escaneo ─────────────────────────────────
     const [domain]=(await db.query(`INSERT INTO gen_auditor.domains(tenant_id,client_id,hostname,verified_at)
       VALUES($1,$2,'portal.example.com',now()) RETURNING id`,[T,clientId])).rows;
-    await db.query(`INSERT INTO gen_auditor.asset_endpoints(tenant_id,asset_id,domain_id) VALUES($1,$2,$3)`,[T,asset.id,domain.id]);
     await db.exec('SET ROLE gen_auditor_api');
     // Contexto de sesión para las consultas directas de este test: la API usa
     // set_config(...,true) dentro de una transacción que se revierte al cerrar.
     await db.exec(`SELECT set_config('app.actor_id','${OWNER}',false),set_config('app.tenant_id','${T}',false)`);
+
+    // El vínculo se crea por HTTP y una segunda petición actualiza el mismo vínculo.
+    const endpointUrl='/assets/'+asset.id+'/endpoints';
+    const linked=await call(endpointUrl,{method:'POST',body:{domain_id:domain.id,path_prefix:'/inicial'}});
+    assert.equal(linked.status,200,`vincular superficie: ${await linked.clone().text()}`);
+    assert.deepEqual((await db.query('SELECT path_prefix FROM gen_auditor.asset_endpoints WHERE tenant_id=$1 AND asset_id=$2 AND domain_id=$3',
+      [T,asset.id,domain.id])).rows,[{path_prefix:'/inicial'}]);
+
+    const updated=await call(endpointUrl,{method:'POST',body:{domain_id:domain.id,path_prefix:'/portal'}});
+    assert.equal(updated.status,200,`actualizar superficie: ${await updated.clone().text()}`);
+    assert.deepEqual((await db.query('SELECT path_prefix FROM gen_auditor.asset_endpoints WHERE tenant_id=$1 AND asset_id=$2 AND domain_id=$3',
+      [T,asset.id,domain.id])).rows,[{path_prefix:'/portal'}]);
 
     const scan=await call('/scans',{method:'POST',body:{domain_id:domain.id,kind:'passive'}});
     assert.equal(scan.status,200);

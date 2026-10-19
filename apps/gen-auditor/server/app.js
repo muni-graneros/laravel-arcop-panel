@@ -124,7 +124,7 @@ export function createApp({pool,verifyToken,config,scan=passiveScan,verify=verif
  endpoint('post','/assets/:id/endpoints',async({db,req})=>{allow(db,['owner','security']);const id=uuid.parse(req.params.id),b=z.object({domain_id:uuid,path_prefix:z.string().max(200).default('')}).strict().parse(req.body);
   const [d]=await rows(db,`SELECT id FROM gen_auditor.domains WHERE id=$1`,[b.domain_id]);if(!d)throw fail('not_found',404);
   const [r]=await rows(db,`INSERT INTO gen_auditor.asset_endpoints(tenant_id,asset_id,domain_id,path_prefix) VALUES(gen_auditor.tenant_id(),$1,$2,$3)
-    ON CONFLICT DO UPDATE SET path_prefix=EXCLUDED.path_prefix RETURNING *`,[id,b.domain_id,b.path_prefix]);
+    ON CONFLICT (tenant_id,asset_id,domain_id) DO UPDATE SET path_prefix=EXCLUDED.path_prefix RETURNING *`,[id,b.domain_id,b.path_prefix]);
   await audit(db,'asset.endpoint_linked',id,{domain_id:b.domain_id});return {notice:'El activo hereda la autorización del dominio: enlazarlo no habilita escanear.'};});
  endpoint('post','/assets/:id/retire',async({db,req})=>{allow(db,['owner','security']);const id=uuid.parse(req.params.id),b=z.object({reason:z.string().min(10).max(2000)}).strict().parse(req.body);
   const [r]=await rows(db,`UPDATE gen_auditor.assets SET retired_at=now(),last_verified_at=now(),notes=left($2,2000) WHERE id=$1 RETURNING id`,[id,b.reason]);
