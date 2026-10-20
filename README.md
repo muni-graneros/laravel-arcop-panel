@@ -1,3 +1,8 @@
+> **Dos productos nuevos y separados:** [ARCOP Open](packages/arcop-open/README.md),
+> componente MIT independiente de Laravel, y [Gen-Auditor](apps/gen-auditor/README.md),
+> plataforma de gobernanza/ciberseguridad. Ver [arquitectura y alcance](apps/gen-auditor/docs/ARQUITECTURA.md).
+> El paquete Composer histórico documentado debajo mantiene su contrato y licencia anteriores.
+
 # laravel-arcop-panel
 
 El ciclo ARCOP de la **Ley 21.719** —recibir la solicitud de un vecino y
