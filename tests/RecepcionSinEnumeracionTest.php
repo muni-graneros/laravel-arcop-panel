@@ -40,7 +40,8 @@ beforeEach(function () {
 it('la lista de resultados enlaza al paso 2 por una referencia opaca, nunca por la clave del titular', function () {
     $html = (string) buscarTitulares('Rocío')->assertOk()->assertSee('Rocío Paredes')->getContent();
 
-    expect($html)->not->toContain('/privacidad/solicitudes/recibir/'.$this->vecino->getKey())
+    // Una referencia opaca puede empezar por la clave: solo se prohíbe la clave completa.
+    expect($html)->not->toMatch('#/privacidad/solicitudes/recibir/'.preg_quote((string) $this->vecino->getKey(), '#').'\b#')
         ->and($html)->toMatch('#/privacidad/solicitudes/recibir/[0-9a-f]{32}#');
 });
 
