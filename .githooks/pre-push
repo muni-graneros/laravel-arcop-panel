@@ -1,73 +1,109 @@
 #!/usr/bin/env bash
-# ──────────────────────────────────────────────────────────────────────────────
-# pre-push — bloquea el envío directo a `main` y corre la suite antes de publicar
-# a una rama compartida.
-#
-# 1) Envío a `main`: SIEMPRE se rechaza. La protección de rama de GitHub no está
-#    disponible en estos repositorios (privados en cuentas Free: ahí ni «branch
-#    protection» ni «rulesets» se pueden configurar). Sin nada del lado del
-#    servidor, lo único que queda es cortar del lado de acá. El flujo del
-#    ecosistema es develop → main por PR, nunca directo.
-#    No hay override por variable de entorno para esta parte: si de verdad hace
-#    falta saltarla, `git push --no-verify` deja claro que fue a propósito.
-#
-# 2) Suite: solo al publicar a `develop`/`main`. En ramas de trabajo el envío es
-#    frecuente y la suite tarda; cobrárselo a cada WIP haría que se saltee el
-#    hook siempre, y un hook que se ignora no protege nada.
-#
-# Saltárselo puntualmente:      git push --no-verify
-# Saltarse solo los tests:      export SKIP_PREPUSH_TESTS=1
-# ──────────────────────────────────────────────────────────────────────────────
-set -euo pipefail
+# STRIX_GUARD_HOOK_V2
+set -uo pipefail
 
-rechazado_a_main=0
-while read -r _local_ref _local_sha remote_ref _remote_sha; do
-    case "$remote_ref" in
-        refs/heads/main | refs/heads/master) rechazado_a_main=1 ;;
-    esac
-done
+# --- 1) refs que se van a empujar -------------------------------------------
+# git pasa por stdin una linea por ref: <local_ref> <local_sha> <remote_ref>
+# <remote_sha>. La lectura NO puede perder refs: si se pierde, el gate
+# escanearia solo HEAD y dejaria pasar un push con secretos (evasion
+# silenciosa). Sin refs legibles NO se puede declarar limpio: se bloquea.
+updates=""
+if [[ ! -t 0 ]]; then
+  updates="$(cat || true)"
+fi
+if [[ -z "${updates//[[:space:]]/}" ]]; then
+  echo "strix-guard: no se pudo leer la lista de refs del push; no se declara limpio" >&2
+  exit 1
+fi
 
-if [ "$rechazado_a_main" -eq 1 ]; then
-    echo "" >&2
-    echo "❌ pre-push: envío directo a «main» bloqueado." >&2
-    echo "   El trabajo entra por «develop» y desde ahí sube a «main» por PR." >&2
-    echo "   Si de verdad hace falta:  git push --no-verify" >&2
+# --- 2) hook previo del repo -------------------------------------------------
+original="${BASH_SOURCE[0]}.xeon-strix-original"
+if [[ -e "$original" ]]; then
+  if [[ ! -x "$original" ]]; then
+    echo "strix-guard: el hook previo existe pero no es ejecutable: $original; no se declara limpio" >&2
     exit 1
+  fi
+  printf '%s
+' "$updates" | "$original" "$@"
+  rc=$?
+  if [[ $rc -ne 0 ]]; then
+    exit $rc
+  fi
 fi
 
-if [ "${SKIP_PREPUSH_TESTS:-0}" = "1" ]; then
-    echo "pre-push: tests omitidos (SKIP_PREPUSH_TESTS=1)."
+# --- 3) activacion: opt-out explicito y auditado -----------------------------
+# Por defecto el gate esta ACTIVO. Desactivarlo exige las DOS variables (modo
+# + motivo) y deja rastro en stderr. Un valor invalido (typo) NO desactiva en
+# silencio: bloquea.
+activado="${STRIX_GUARD_HOOK_ACTIVADO:-1}"
+case "$activado" in
+  1|true|TRUE|on|ON|yes|YES)
+    ;;
+  0|false|FALSE|off|OFF|no|NO)
+    if [[ -z "${STRIX_GUARD_MOTIVO:-}" ]]; then
+      echo "strix-guard: STRIX_GUARD_HOOK_ACTIVADO=$activado sin STRIX_GUARD_MOTIVO; el gate no se desactiva asi" >&2
+      exit 1
+    fi
+    echo "strix-guard: gate DESACTIVADO a proposito (motivo: ${STRIX_GUARD_MOTIVO})" >&2
     exit 0
-fi
-
-RAMA_ACTUAL="$(git rev-parse --abbrev-ref HEAD)"
-case "$RAMA_ACTUAL" in
-    develop | main) ;;
-    *)
-        echo "pre-push: rama de trabajo ($RAMA_ACTUAL) — no se corre la suite."
-        echo "          Antes de abrir la PR: make test"
-        exit 0
-        ;;
+    ;;
+  *)
+    echo "strix-guard: STRIX_GUARD_HOOK_ACTIVADO=$activado no es valido (usa 1 o 0); no se declara limpio" >&2
+    exit 1
+    ;;
 esac
 
-# Solo si el repo tiene un target `test` en el Makefile.
-if [ -f Makefile ] && grep -qE '^test:' Makefile; then
-    # Sin contenedores arriba no hay dónde correr los tests: no se bloquea el
-    # envío (sería peor que el remedio), pero se avisa fuerte.
-    if ! docker compose ps --status running --services 2>/dev/null | grep -q '^app$'; then
-        echo "pre-push: los contenedores no están arriba; NO se corrieron los tests."
-        echo "          Levántalos con 'make up' y corre 'make test' antes de abrir la PR."
-        exit 0
-    fi
-
-    echo "pre-push: corriendo la suite… — omitir con git push --no-verify"
-    if ! make test; then
-        echo "" >&2
-        echo "❌ pre-push: hay tests en rojo. El envío se canceló." >&2
-        echo "   Arréglalos, o usa 'git push --no-verify' si sabes lo que haces." >&2
-        exit 1
-    fi
-    echo "✅ pre-push: suite en verde."
+# --- 4) el escaner debe existir y ser ejecutable -----------------------------
+GUARD="${STRIX_GUARD_BIN:-$HOME/Dev/scripts/strix-guard/strix-guard}"
+if [[ ! -x "$GUARD" ]]; then
+  echo "strix-guard: el escaner no esta disponible o no es ejecutable: $GUARD; no se declara limpio" >&2
+  exit 1
 fi
 
-exit 0
+# --- 5) pin del escaner ------------------------------------------------------
+# El hook es versionado en el repo, pero el escaner vive FUERA (ruta mutable).
+# El pin (sha256, versionado junto al hook) ata el binario externo al commit
+# revisado: si el escaner cambia, hay que actualizar el pin en el repo.
+repo_raiz="$(env -u GIT_DIR -u GIT_WORK_TREE git rev-parse --show-toplevel 2>/dev/null || true)"
+PIN="${STRIX_GUARD_PIN:-}"
+if [[ -z "$PIN" ]]; then
+  # El pin se escribe junto al hook (el instalador lo pone en el directorio
+  # REAL de hooks) y ahi es donde el repo lo versiona. Buscarlo solo en
+  # .githooks/ hacia que el pin no se encontrara en ningun repo SIN
+  # core.hooksPath (94 de 133) y que TODO push se bloqueara.
+  dir_hook="${BASH_SOURCE[0]%/*}"
+  if [[ -r "$dir_hook/strix-guard.sha256" ]]; then
+    PIN="$dir_hook/strix-guard.sha256"
+  elif [[ -n "$repo_raiz" && -r "$repo_raiz/.githooks/strix-guard.sha256" ]]; then
+    PIN="$repo_raiz/.githooks/strix-guard.sha256"
+  fi
+fi
+if [[ -z "$PIN" || ! -r "$PIN" ]]; then
+  echo "strix-guard: falta el pin del escaner (${PIN:-<sin ruta>}); no se declara limpio" >&2
+  exit 1
+fi
+esperado="$(tr -d '[:space:]' < "$PIN" | head -1)"
+real="$(sha256sum "$GUARD" 2>/dev/null | cut -d' ' -f1)"
+if [[ -z "$real" || "$esperado" != "$real" ]]; then
+  echo "strix-guard: el escaner no coincide con el pin ($PIN): esperado ${esperado:-<vacio>}, real ${real:-<sin hash>}; no se declara limpio" >&2
+  exit 1
+fi
+
+# --- 6) escaneo de TODAS las refs ---------------------------------------------
+# Se escanea CADA ref que se empuja, no solo la primera: un push de varias
+# refs con el secreto en la segunda no puede evadir el gate.
+repo="${repo_raiz:-.}"
+fallo=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [[ -z "${local_sha:-}" ]] && continue
+  if [[ "$local_sha" == "0000000000000000000000000000000000000000" ]]; then continue; fi
+  if [[ -n "${remote_sha:-}" && "$remote_sha" != "0000000000000000000000000000000000000000" ]]; then
+    rango="$remote_sha..$local_sha"
+  else
+    rango="$local_sha"
+  fi
+  if ! "$GUARD" secreto "$rango" "$repo"; then
+    fallo=1
+  fi
+done <<< "$updates"
+exit $fallo
