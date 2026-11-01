@@ -100,7 +100,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   if [[ -n "${remote_sha:-}" && "$remote_sha" != "0000000000000000000000000000000000000000" ]]; then
     rango="$remote_sha..$local_sha"
   else
-    rango="$local_sha"
+    rango="$local_sha --not --remotes"
   fi
   if ! "$GUARD" secreto "$rango" "$repo"; then
     fallo=1
