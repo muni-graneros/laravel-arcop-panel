@@ -6,6 +6,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Muni\Shared\Privacidad\Ciclo\AlcanceDelCese;
@@ -38,7 +39,11 @@ class AccionesController extends Controller
     /** La página de la acción: solo muestra lo que hay que leer antes de decidir. */
     public function formulario(Request $peticion, Solicitud $solicitud): View
     {
-        $accion = (string) $peticion->route()->defaults['accion'];
+        $ruta = $peticion->route();
+        $accion = $ruta instanceof Route ? ($ruta->defaults['accion'] ?? null) : null;
+
+        // Sin ruta o sin acción declarada no hay página que mostrar.
+        abort_unless(is_string($accion), 404);
 
         $this->exigirPendiente($solicitud);
         $this->exigirTipoCorrecto($accion, $solicitud);
