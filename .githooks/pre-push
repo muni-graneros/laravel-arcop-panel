@@ -23,8 +23,7 @@ if [[ -e "$original" ]]; then
     echo "strix-guard: el hook previo existe pero no es ejecutable: $original; no se declara limpio" >&2
     exit 1
   fi
-  printf '%s
-' "$updates" | "$original" "$@"
+  printf '%s\n' "$updates" | "$original" "$@"
   rc=$?
   if [[ $rc -ne 0 ]]; then
     exit $rc
@@ -92,15 +91,28 @@ fi
 # --- 6) escaneo de TODAS las refs ---------------------------------------------
 # Se escanea CADA ref que se empuja, no solo la primera: un push de varias
 # refs con el secreto en la segunda no puede evadir el gate.
+#
+# RAMA NUEVA (la que todavia no existe en el remoto): el rango es
+# "<sha> --not --remotes=<remoto destino>". Se excluye SOLO el remoto al que
+# se empuja, NO todos los remotos: con dos remotos, un commit con secreto ya
+# publicado en A y empujado como rama nueva a C tiene que seguir escaneandose
+# (con "--not --remotes" a secas, lo que ya esta en A queda fuera del rango y
+# el secreto llegaria a C sin que nadie lo mire). El nombre del remoto lo pasa
+# git como $1; con ${1:?} un nombre vacio ABORTA el hook (fallo cerrado) en
+# vez de escanear de mas. Si el destino es una URL y no un nombre de remoto,
+# el patron no casa con ningun remoto y se escanea TODA la ascendencia: fallo
+# seguro.
 repo="${repo_raiz:-.}"
 fallo=0
+# shellcheck disable=SC2034  # local_ref y remote_ref se leen para consumir la
+# linea que da git; el gate escanea por local_sha y remote_sha.
 while read -r local_ref local_sha remote_ref remote_sha; do
   [[ -z "${local_sha:-}" ]] && continue
   if [[ "$local_sha" == "0000000000000000000000000000000000000000" ]]; then continue; fi
   if [[ -n "${remote_sha:-}" && "$remote_sha" != "0000000000000000000000000000000000000000" ]]; then
     rango="$remote_sha..$local_sha"
   else
-    rango="$local_sha --not --remotes"
+    rango="$local_sha --not --remotes=${1:?strix-guard: falta el nombre del remoto del push}"
   fi
   if ! "$GUARD" secreto "$rango" "$repo"; then
     fallo=1
