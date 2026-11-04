@@ -82,26 +82,38 @@ if [[ -z "$PIN" || ! -r "$PIN" ]]; then
   exit 1
 fi
 esperado="$(tr -d '[:space:]' < "$PIN" | head -1)"
-real="$(sha256sum "$GUARD" 2>/dev/null | cut -d' ' -f1)"
-if [[ -z "$real" || "$esperado" != "$real" ]]; then
-  echo "strix-guard: el escaner no coincide con el pin ($PIN): esperado ${esperado:-<vacio>}, real ${real:-<sin hash>}; no se declara limpio" >&2
-  exit 1
-fi
+verificar_pin() {
+  local real
+  real="$(sha256sum "$GUARD" 2>/dev/null | cut -d' ' -f1)"
+  if [[ -z "$real" || "$esperado" != "$real" ]]; then
+    echo "strix-guard: el escaner no coincide con el pin ($PIN): esperado ${esperado:-<vacio>}, real ${real:-<sin hash>}; no se declara limpio" >&2
+    return 1
+  fi
+  return 0
+}
+verificar_pin || exit 1
 
 # --- 6) escaneo de TODAS las refs ---------------------------------------------
 # Se escanea CADA ref que se empuja, no solo la primera: un push de varias
 # refs con el secreto en la segunda no puede evadir el gate.
 #
-# RAMA NUEVA (la que todavia no existe en el remoto): el rango es
-# "<sha> --not --remotes=<remoto destino>". Se excluye SOLO el remoto al que
-# se empuja, NO todos los remotos: con dos remotos, un commit con secreto ya
-# publicado en A y empujado como rama nueva a C tiene que seguir escaneandose
-# (con "--not --remotes" a secas, lo que ya esta en A queda fuera del rango y
-# el secreto llegaria a C sin que nadie lo mire). El nombre del remoto lo pasa
-# git como $1; con ${1:?} un nombre vacio ABORTA el hook (fallo cerrado) en
-# vez de escanear de mas. Si el destino es una URL y no un nombre de remoto,
-# el patron no casa con ningun remoto y se escanea TODA la ascendencia: fallo
-# seguro.
+# RAMA NUEVA (la que todavia no existe en el remoto): por defecto se escanea
+# TODA la ascendencia ("<sha> --do-walk": el escaner no lo acota a la punta).
+# Solo se excluye el remoto destino si se puede PROBAR que es un remoto: su
+# nombre es seguro (sin espacios, sin "/", sin glob), esta configurado en
+# `git remote` y ningun otro remoto empieza por "<nombre>/".
+#
+# POR QUE NO SE EXCLUYE A LA BUENA. El nombre del remoto (o la URL) lo elige
+# quien empuja y el escaner lo pasa a gitleaks tal cual, que lo parte por
+# espacios: un destino con "--max-count=0" hacia que se escanearan 0 commits
+# y el push pasaba sin escanear. Y "--remotes=origin" tambien excluye las refs
+# de un remoto llamado "origin/foo" (git lo acepta), asi que un commit que
+# solo estaba ahi quedaba fuera del escaneo.
+#
+# En cualquier otro caso se escanea MAS, nunca menos: un remoto con nombre
+# raro, una URL, un remoto que no existe o un remoto "padre" de otro ->
+# ascendencia completa. Con ${1:?} un nombre vacio ABORTA el hook (fallo
+# cerrado) en vez de escanear de mas.
 repo="${repo_raiz:-.}"
 fallo=0
 # shellcheck disable=SC2034  # local_ref y remote_ref se leen para consumir la
@@ -112,8 +124,11 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   if [[ -n "${remote_sha:-}" && "$remote_sha" != "0000000000000000000000000000000000000000" ]]; then
     rango="$remote_sha..$local_sha"
   else
-    rango="$local_sha --not --remotes=${1:?strix-guard: falta el nombre del remoto del push}"
+    rango="$local_sha --do-walk"; strix_remoto="${1:?strix-guard: falta el nombre del remoto del push}"; strix_remotos=$'\n'"$(git remote </dev/null 2>/dev/null)"$'\n'; if [[ "$strix_remoto" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]*$ && "$strix_remotos" == *$'\n'"$strix_remoto"$'\n'* && "$strix_remotos" != *$'\n'"$strix_remoto/"* ]]; then rango="$local_sha --not --remotes=$strix_remoto"; fi
   fi
+  # El escaner es una ruta externa mutable: volver a comprobar el pin justo
+  # antes de ejecutarlo reduce la ventana TOCTOU entre hash y exec.
+  verificar_pin || exit 1
   if ! "$GUARD" secreto "$rango" "$repo"; then
     fallo=1
   fi
